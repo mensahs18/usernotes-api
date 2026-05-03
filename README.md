@@ -1,7 +1,6 @@
 # Notes API
 
-A backend API built with FastAPI, that allows users to register, log in, and manage personal notes.
-To be implemented = TBI
+A backend API built with FastAPI, that allows users to register, log in, and manage personal notes. Planned to involve user auth, secure auth, with information stored on databases. Eventual update into productivity and scheduling system.
 
 ## Features
 - [ ] User Greeting
@@ -32,6 +31,12 @@ Open browser:
 
 http://127.0.0.1:8000/docs
 
-## Current Status:
+## Status:
 
-In progress (Incomplete)
+Incomplete - In Progress
+
+## Current Progress:
+
+- Application initialised
+- Models, schemas defined
+- Database and session initialised
