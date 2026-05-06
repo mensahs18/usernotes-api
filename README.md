@@ -4,7 +4,7 @@ A backend API built with FastAPI, that allows users to register, log in, and man
 
 ## Features
 - [ ] User Greeting
-- [ ] User Registration
+- [X] User Registration
 - [ ] User login
 - [ ] Create notes
 - [ ] View notes
@@ -37,6 +37,6 @@ Incomplete - In Progress
 
 ## Current Progress:
 
-- Application initialised
-- Models, schemas defined
-- Database and session initialised
+- Register endpoint implemented
+- Argon2 hashing for secure password storage
+- Password validation implemented
