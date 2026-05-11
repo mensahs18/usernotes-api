@@ -33,9 +33,7 @@ class UserCreate(BaseModel):
 
     
 
-class UserInDB(BaseModel):
-    username: str
-    hashed_password: str
-    name: Name
-
+class LoginRequest(BaseModel):
+    username: str = Field
+    password: str = Field
 

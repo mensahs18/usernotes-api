@@ -2,8 +2,17 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import engine, LocalSession, Base
 from models import User
-from schemas import UserCreate, UserInDB
+from schemas import UserCreate, LoginRequest
 from argon2 import PasswordHasher
+from argon2.exceptions import VerificationError
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+import os
+import jwt
+
+load_dotenv()
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = "HS256"
 
 pwHasher = PasswordHasher()
 Base.metadata.create_all(engine)
@@ -28,7 +37,7 @@ def register(user: UserCreate, db: Session = Depends(get_database)):
 
     existing_user = db.query(User).filter(User.username == user.username).first()
     if (existing_user != None):
-        raise HTTPException(401, detail="Username is already taken.")
+        raise HTTPException(409, detail="Username is already taken.")
 
     new_user = User(
         username=user.username,
@@ -43,4 +52,21 @@ def register(user: UserCreate, db: Session = Depends(get_database)):
 
     return { "message": f"Registration successful.\nWelcome, {new_user.fname}.", "user_id:" : new_user.id,  }
 
+@app.post("/login")
+def login(user: LoginRequest, db: Session = Depends(get_database)):
+    current_user = authenticate_user(user.username, user.password, db)
+    
+    return { "message": f"Welcome back, {current_user.fname}."}
 
+def authenticate_user(username, password, db):
+    existing_user = db.query(User).filter(User.username == username).first()
+
+    if not existing_user:
+        raise HTTPException(401, "Invalid credentials.")
+
+    try:
+        pwHasher.verify(existing_user.password, password)
+    except VerificationError:
+        raise HTTPException(401, "Invalid credentials.")
+    
+    return existing_user
