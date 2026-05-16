@@ -2,10 +2,10 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import engine, LocalSession, Base
 from models import User
-from schemas import UserCreate, LoginRequest
+from schemas import UserCreate, LoginRequest, TokenPayload, TokenResponse
 from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 import os
 import jwt
@@ -13,6 +13,20 @@ import jwt
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
+
+def create_access_token(user_id):
+    now = datetime.now(timezone.utc)
+    expiry_time = now + timedelta(minutes=15)
+
+    token_payload = TokenPayload(
+        sub=user_id,
+        iat=now,
+        exp=expiry_time
+        )
+    
+    encoded_jwt = jwt.encode(payload=token_payload.model_dump() , key=SECRET_KEY , algorithm=ALGORITHM)
+
+    return encoded_jwt
 
 pwHasher = PasswordHasher()
 Base.metadata.create_all(engine)
