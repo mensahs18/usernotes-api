@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.security.oauth2 import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from database import engine, LocalSession, Base
 from models import User
@@ -41,6 +42,8 @@ def verify_access_token(token):
 pwHasher = PasswordHasher()
 Base.metadata.create_all(engine)
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
 app = FastAPI()
 
 def get_database():
@@ -49,6 +52,36 @@ def get_database():
         yield db
     finally:
         db.close()
+
+def authenticate_user(username, password, db):
+    existing_user = db.query(User).filter(User.username == username).first()
+
+    if not existing_user:
+        raise HTTPException(401, "Invalid credentials.")
+
+    try:
+        pwHasher.verify(existing_user.password, password)
+    except VerificationError:
+        raise HTTPException(401, "Invalid credentials.")
+    
+    return existing_user
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_database)):
+    
+    token_data = verify_access_token(token)
+
+    if token_data["token_status"] != "valid":
+        raise HTTPException(401, token_data["message"])
+    
+    current_user_id = token_data["data"]["sub"]
+
+    current_user: User = db.query(User).filter(User.id == current_user_id).first()
+
+    if current_user is None:
+        raise HTTPException(401, "User does not exist.")
+
+    return current_user
+
 
 
 @app.get("/")
@@ -79,18 +112,9 @@ def register(user: UserCreate, db: Session = Depends(get_database)):
 @app.post("/login")
 def login(user: LoginRequest, db: Session = Depends(get_database)):
     current_user = authenticate_user(user.username, user.password, db)
+    token = create_access_token(current_user.id)
     
-    return { "message": f"Welcome back, {current_user.fname}."}
-
-def authenticate_user(username, password, db):
-    existing_user = db.query(User).filter(User.username == username).first()
-
-    if not existing_user:
-        raise HTTPException(401, "Invalid credentials.")
-
-    try:
-        pwHasher.verify(existing_user.password, password)
-    except VerificationError:
-        raise HTTPException(401, "Invalid credentials.")
-    
-    return existing_user
+    return TokenResponse(
+        access_token=token,
+        token_type="bearer"
+    )
