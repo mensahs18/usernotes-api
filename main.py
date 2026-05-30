@@ -28,6 +28,16 @@ def create_access_token(user_id):
 
     return encoded_jwt
 
+def verify_access_token(token):
+    try:
+        decoded_jwt = jwt.decode(token, key=SECRET_KEY, algorithms=ALGORITHM)
+        return { "token_status": "valid", "data": decoded_jwt }
+    except jwt.ExpiredSignatureError:
+        return { "token_status": "invalid", "message": "Token has expired." }
+    except jwt.InvalidTokenError:
+        return { "token_status": "invalid", "message": "Token provided is invalid." }
+        
+
 pwHasher = PasswordHasher()
 Base.metadata.create_all(engine)
 
@@ -43,7 +53,7 @@ def get_database():
 
 @app.get("/")
 def read_root():
-    return { "message": "Hello, Users!\n", "users" : "There are users here. Access /users to view them." }
+    return { "message": "Hello, welcome!\n To register here. Access /register to register. Once done, visit /login." }
 
 @app.post("/register")
 def register(user: UserCreate, db: Session = Depends(get_database)):
