@@ -37,12 +37,6 @@ class UserResponse(BaseModel):
     username: str = Field()
     name: Name
 
-class LoginRequest(BaseModel):
-    username: str = Field()
-    password: str = Field()
-    name: Name
-
-
 
 class TokenResponse(BaseModel):
     access_token: str

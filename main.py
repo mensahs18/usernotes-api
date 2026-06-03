@@ -1,9 +1,9 @@
 from fastapi import FastAPI, Depends, HTTPException
-from fastapi.security.oauth2 import OAuth2PasswordBearer
+from fastapi.security.oauth2 import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from database import engine, LocalSession, Base
 from models import User
-from schemas import UserCreate, UserResponse, LoginRequest, TokenPayload, TokenResponse
+from schemas import UserCreate, UserResponse, TokenPayload, TokenResponse
 from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError
 from datetime import datetime, timedelta, timezone
@@ -105,10 +105,10 @@ def register(user: UserCreate, db: Session = Depends(get_database)):
     return { "message": f"Registration successful.\nWelcome, {new_user.fname}.", "user_id:" : new_user.id,  }
 
 @app.post("/login")
-def login(user: LoginRequest, db: Session = Depends(get_database)):
-    current_user = authenticate_user(user.username, user.password, db)
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_database)):
+    current_user = authenticate_user(form_data.username, form_data.password, db)
     token = create_access_token(current_user.id)
-     
+    
     return TokenResponse(
         access_token=token,
         token_type="bearer"
