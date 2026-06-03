@@ -3,7 +3,7 @@ from fastapi.security.oauth2 import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from database import engine, LocalSession, Base
 from models import User
-from schemas import UserCreate, LoginRequest, TokenPayload, TokenResponse
+from schemas import UserCreate, UserResponse, LoginRequest, TokenPayload, TokenResponse
 from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError
 from datetime import datetime, timedelta, timezone
@@ -31,12 +31,12 @@ def create_access_token(user_id):
 
 def verify_access_token(token):
     try:
-        decoded_jwt = jwt.decode(token, key=SECRET_KEY, algorithms=ALGORITHM)
+        decoded_jwt = jwt.decode(token, key=SECRET_KEY, algorithms=[ALGORITHM])
         return { "token_status": "valid", "data": decoded_jwt }
     except jwt.ExpiredSignatureError:
-        return { "token_status": "invalid", "message": "Token has expired." }
+        raise HTTPException( 401, "Token has expired." )
     except jwt.InvalidTokenError:
-        return { "token_status": "invalid", "message": "Token provided is invalid." }
+        raise HTTPException( 401, "Token is invalid." )
         
 
 pwHasher = PasswordHasher()
@@ -68,14 +68,9 @@ def authenticate_user(username, password, db):
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_database)):
     
-    token_data = verify_access_token(token)
+    decoded_data = verify_access_token(token)
 
-    if token_data["token_status"] != "valid":
-        raise HTTPException(401, token_data["message"])
-    
-    current_user_id = token_data["data"]["sub"]
-
-    current_user: User = db.query(User).filter(User.id == current_user_id).first()
+    current_user: User = db.query(User).filter(User.id == decoded_data["data"]["sub"]).first()
 
     if current_user is None:
         raise HTTPException(401, "User does not exist.")
@@ -113,8 +108,12 @@ def register(user: UserCreate, db: Session = Depends(get_database)):
 def login(user: LoginRequest, db: Session = Depends(get_database)):
     current_user = authenticate_user(user.username, user.password, db)
     token = create_access_token(current_user.id)
-    
+     
     return TokenResponse(
         access_token=token,
         token_type="bearer"
     )
+
+@app.get("/users/me", response_model=UserResponse)
+def read_users_me(user: User = Depends(get_current_user)):
+    return user

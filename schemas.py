@@ -32,9 +32,15 @@ class UserCreate(BaseModel):
         
         return value
 
+class UserResponse(BaseModel):
+    id: int = Field()
+    username: str = Field()
+    name: Name
+
 class LoginRequest(BaseModel):
-    username: str = Field
-    password: str = Field
+    username: str = Field()
+    password: str = Field()
+    name: Name
 
 
 
@@ -43,6 +49,6 @@ class TokenResponse(BaseModel):
     token_type: str = 'bearer'
 
 class TokenPayload(BaseModel):
-    sub: str
+    sub: int
     exp: datetime
     iat: datetime
