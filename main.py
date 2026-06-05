@@ -20,9 +20,9 @@ def create_access_token(user_id):
     expiry_time = now + timedelta(minutes=15)
 
     token_payload = TokenPayload(
-        sub=user_id,
-        iat=now,
-        exp=expiry_time
+        sub=str(user_id),
+        iat=int(now.timestamp()),
+        exp=int(expiry_time.timestamp())
         )
     
     encoded_jwt = jwt.encode(payload=token_payload.model_dump() , key=SECRET_KEY , algorithm=ALGORITHM)
@@ -70,7 +70,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     
     decoded_data = verify_access_token(token)
 
-    current_user: User = db.query(User).filter(User.id == decoded_data["data"]["sub"]).first()
+    current_user: User = db.query(User).filter(User.id == int(decoded_data["data"]["sub"])).first()
 
     if current_user is None:
         raise HTTPException(401, "User does not exist.")
@@ -116,4 +116,11 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 @app.get("/users/me", response_model=UserResponse)
 def read_users_me(user: User = Depends(get_current_user)):
-    return user
+    return UserResponse(
+        id=user.id,
+        username=user.username,
+        name= {
+            "fname": user.fname,
+            "sname": user.sname
+        }
+    )

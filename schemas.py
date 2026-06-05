@@ -13,7 +13,7 @@ class Name(BaseModel):
 
 class UserCreate(BaseModel):
     username: strippedStr = Field(min_length=3, frozen=True)
-    password: str = Field(min_length=8, max_lenth=128)
+    password: str = Field(min_length=8, max_length=128)
     name: Name
 
     @field_validator('password')
@@ -43,6 +43,6 @@ class TokenResponse(BaseModel):
     token_type: str = 'bearer'
 
 class TokenPayload(BaseModel):
-    sub: int
-    exp: datetime
-    iat: datetime
+    sub: str
+    exp: int
+    iat: int
