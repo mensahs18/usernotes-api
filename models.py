@@ -1,11 +1,12 @@
 from database import Base
-from sqlalchemy import ForeignKey
+from uuid6 import UUID, uuid7
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[UUID] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid7()))
     username: Mapped[str] = mapped_column(unique=True)
     fname: Mapped[str] = mapped_column()
     sname: Mapped[str] = mapped_column()
@@ -22,14 +23,14 @@ class User(Base):
 class Note(Base):
     __tablename__ = "notes"
     
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid7()))
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
     title: Mapped[str] = mapped_column()
     content: Mapped[str] = mapped_column()
 
-def __repr__(self) -> str:
-    return (
-        f"Note(id={self.id!r}, "
-        f"user_id={self.user_id!r}, "
-        f"title={self.title!r})"
-    )
+    def __repr__(self) -> str:
+        return (
+            f"Note(id={self.id!r}, "
+            f"user_id={self.user_id!r}, "
+            f"title={self.title!r})"
+        )

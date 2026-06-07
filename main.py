@@ -8,6 +8,7 @@ from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
+from uuid6 import UUID
 import os
 import jwt
 
@@ -70,7 +71,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     
     decoded_data = verify_access_token(token)
 
-    current_user: User = db.query(User).filter(User.id == int(decoded_data["data"]["sub"])).first()
+    current_user: User = db.query(User).filter(User.id == decoded_data["data"]["sub"]).first()
 
     if current_user is None:
         raise HTTPException(401, "User does not exist.")

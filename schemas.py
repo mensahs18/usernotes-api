@@ -1,7 +1,7 @@
 from typing import Annotated
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 from argon2 import PasswordHasher
-from datetime import datetime
+from uuid6 import UUID
 import re
 
 strippedStr = Annotated[str, StringConstraints(strip_whitespace=True)]
@@ -33,7 +33,7 @@ class UserCreate(BaseModel):
         return value
 
 class UserResponse(BaseModel):
-    id: int = Field()
+    id: str = Field()
     username: str = Field()
     name: Name
 
