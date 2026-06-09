@@ -54,7 +54,7 @@ class NoteCreate(BaseModel):
     content: strippedStr = Field(min_length=1)
 
 class NoteResponse(BaseModel):
-    note_id: str
+    id: str
     title: str
     content: str
     created_at: datetime

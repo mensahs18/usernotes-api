@@ -2,8 +2,8 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security.oauth2 import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from database import engine, LocalSession, Base
-from models import User
-from schemas import UserCreate, UserResponse, TokenPayload, TokenResponse
+from models import User, Note
+from schemas import UserCreate, UserResponse, TokenPayload, TokenResponse, NoteCreate, NoteResponse
 from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError
 from datetime import datetime, timedelta, timezone
@@ -124,4 +124,25 @@ def read_users_me(user: User = Depends(get_current_user)):
             "fname": user.fname,
             "sname": user.sname
         }
+    )
+
+@app.post("/notes", response_model=NoteResponse)
+def create_note(note: NoteCreate, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
+    new_note = Note(
+        user_id=user.id,
+        title=note.title,
+        content=note.content,
+
+    )
+
+    db.add(new_note)
+    db.commit()
+    db.refresh(new_note)
+
+    return NoteResponse(
+        id=new_note.id,
+        title=new_note.title,
+        content=new_note.content,
+        created_at=new_note.created_at,
+        updated_at=new_note.updated_at
     )
