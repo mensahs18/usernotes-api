@@ -132,7 +132,6 @@ def create_note(note: NoteCreate, user: User = Depends(get_current_user), db: Se
         user_id=user.id,
         title=note.title,
         content=note.content,
-
     )
 
     db.add(new_note)
@@ -145,4 +144,27 @@ def create_note(note: NoteCreate, user: User = Depends(get_current_user), db: Se
         content=new_note.content,
         created_at=new_note.created_at,
         updated_at=new_note.updated_at
+    )
+
+@app.get("/notes", response_model=list[NoteResponse])
+def read_notes(user: User = Depends(get_current_user), db: Session = Depends(get_database)):
+    return db.query(Note).filter(Note.user_id == user.id).all()
+
+@app.get("/notes/{note_id}", response_model=NoteResponse)
+def read_one_note(note_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
+
+    existing_note = db.query(Note).filter(Note.id == note_id).first()
+
+    if not existing_note:
+        raise HTTPException(404, detail="Note not Found.")
+    
+    if not existing_note.user_id == user.id:
+        raise HTTPException(404, detail="Note not Found.")
+    
+    return NoteResponse(
+        id=existing_note.id,
+        title=existing_note.title,
+        content=existing_note.content,
+        created_at=existing_note.created_at,
+        updated_at=existing_note.updated_at
     )
