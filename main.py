@@ -3,7 +3,7 @@ from fastapi.security.oauth2 import OAuth2PasswordBearer, OAuth2PasswordRequestF
 from sqlalchemy.orm import Session
 from database import engine, LocalSession, Base
 from models import User, Note
-from schemas import UserCreate, UserResponse, TokenPayload, TokenResponse, NoteCreate, NoteResponse
+from schemas import UserCreate, UserResponse, NoteUpdate, TokenPayload, TokenResponse, NoteCreate, NoteResponse
 from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError
 from datetime import datetime, timedelta, timezone
@@ -153,13 +153,7 @@ def create_note(note: NoteCreate, user: User = Depends(get_current_user), db: Se
     db.commit()
     db.refresh(new_note)
 
-    return NoteResponse(
-        id=new_note.id,
-        title=new_note.title,
-        content=new_note.content,
-        created_at=new_note.created_at,
-        updated_at=new_note.updated_at
-    )
+    return new_note
 
 @app.get("/notes", response_model=list[NoteResponse], status_code=200)
 def read_notes(user: User = Depends(get_current_user), db: Session = Depends(get_database)):
@@ -178,24 +172,23 @@ def read_one_note(note_id: str, user: User = Depends(get_current_user), db: Sess
         updated_at=existing_note.updated_at
     )
 
-@app.put("/notes/{note_id}", response_model=NoteResponse, status_code=200)
-def update_note(note_id: str, updated_note: NoteCreate, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
+@app.patch("/notes/{note_id}", response_model=NoteResponse, status_code=200)
+def update_note(note_id: str, updated_note: NoteUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
     
     existing_note = get_note_or_404(note_id, user, db)
+
+    if updated_note.title is None and updated_note.content is None:
+        raise HTTPException(400, detail="No fields provided to update.")
     
-    existing_note.title = updated_note.title
-    existing_note.content = updated_note.content
+    if updated_note.title is not None:
+        existing_note.title = updated_note.title
+    if updated_note.content is not None:
+        existing_note.content = updated_note.content
 
     db.commit()
     db.refresh(existing_note)
 
-    return NoteResponse(
-        id=existing_note.id,
-        title=existing_note.title,
-        content=existing_note.content,
-        created_at=existing_note.created_at,
-        updated_at=existing_note.updated_at
-    )
+    return existing_note
 
 @app.delete("/notes/{note_id}", status_code=204)
 def delete_note(note_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_database)):

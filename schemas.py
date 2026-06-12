@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field, StringConstraints, field_validator
 from argon2 import PasswordHasher
 from uuid6 import UUID
 from datetime import datetime
+from typing import Optional
 import re
 
 strippedStr = Annotated[str, StringConstraints(strip_whitespace=True)]
@@ -52,6 +53,10 @@ class TokenPayload(BaseModel):
 class NoteCreate(BaseModel):
     title: strippedStr = Field(min_length=1)
     content: strippedStr = Field(min_length=1)
+
+class NoteUpdate(BaseModel):
+    title: Optional[strippedStr] = Field(default=None, min_length=1)
+    content: Optional[strippedStr] = Field(default=None, min_length=1)
 
 class NoteResponse(BaseModel):
     id: str
