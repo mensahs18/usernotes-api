@@ -88,16 +88,16 @@ def get_note_or_404(note_id, user, db):
         raise HTTPException(404, detail="Note not Found.")
     return existing_note
 
-@app.get("/")
+@app.get("/", status_code=200)
 def read_root():
-    return { "message": "Hello, welcome!\n To register here. Access /register to register. Once done, visit /login." }
+    return { "message": "API is successfully running." }
 
-@app.post("/register")
+@app.post("/register", response_model=UserResponse, status_code=201)
 def register(user: UserCreate, db: Session = Depends(get_database)):
     hashed_password = pwHasher.hash(user.password)
 
     existing_user = db.query(User).filter(User.username == user.username).first()
-    if (existing_user != None):
+    if existing_user is not None:
         raise HTTPException(409, detail="Username is already taken.")
 
     new_user = User(
@@ -111,9 +111,16 @@ def register(user: UserCreate, db: Session = Depends(get_database)):
     db.commit()
     db.refresh(new_user)
 
-    return { "message": f"Registration successful.\nWelcome, {new_user.fname}.", "user_id:" : new_user.id,  }
+    return UserResponse(
+        id=new_user.id,
+        username=new_user.username,
+        name = {
+            "fname": new_user.fname,
+            "sname": new_user.sname
+        }
+    )
 
-@app.post("/login")
+@app.post("/login", response_model=TokenResponse, status_code=200)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_database)):
     current_user = authenticate_user(form_data.username, form_data.password, db)
     token = create_access_token(current_user.id)
@@ -123,7 +130,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         token_type="bearer"
     )
 
-@app.get("/users/me", response_model=UserResponse)
+@app.get("/users/me", response_model=UserResponse, status_code=200)
 def read_users_me(user: User = Depends(get_current_user)):
     return UserResponse(
         id=user.id,
