@@ -78,7 +78,15 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
     return current_user
 
+def get_note_or_404(note_id, user, db):
+    existing_note = db.query(Note).filter(Note.id == note_id).first()
 
+    if not existing_note:
+        raise HTTPException(404, detail="Note not Found.")
+    
+    if not existing_note.user_id == user.id:
+        raise HTTPException(404, detail="Note not Found.")
+    return existing_note
 
 @app.get("/")
 def read_root():
@@ -126,7 +134,7 @@ def read_users_me(user: User = Depends(get_current_user)):
         }
     )
 
-@app.post("/notes", response_model=NoteResponse)
+@app.post("/notes", response_model=NoteResponse, status_code=201)
 def create_note(note: NoteCreate, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
     new_note = Note(
         user_id=user.id,
@@ -146,20 +154,14 @@ def create_note(note: NoteCreate, user: User = Depends(get_current_user), db: Se
         updated_at=new_note.updated_at
     )
 
-@app.get("/notes", response_model=list[NoteResponse])
+@app.get("/notes", response_model=list[NoteResponse], status_code=200)
 def read_notes(user: User = Depends(get_current_user), db: Session = Depends(get_database)):
     return db.query(Note).filter(Note.user_id == user.id).all()
 
-@app.get("/notes/{note_id}", response_model=NoteResponse)
+@app.get("/notes/{note_id}", response_model=NoteResponse, status_code=200)
 def read_one_note(note_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
 
-    existing_note = db.query(Note).filter(Note.id == note_id).first()
-
-    if not existing_note:
-        raise HTTPException(404, detail="Note not Found.")
-    
-    if not existing_note.user_id == user.id:
-        raise HTTPException(404, detail="Note not Found.")
+    existing_note = get_note_or_404(note_id, user, db)
     
     return NoteResponse(
         id=existing_note.id,
@@ -169,16 +171,10 @@ def read_one_note(note_id: str, user: User = Depends(get_current_user), db: Sess
         updated_at=existing_note.updated_at
     )
 
-@app.put("/notes/{note_id}", response_model=NoteResponse)
+@app.put("/notes/{note_id}", response_model=NoteResponse, status_code=200)
 def update_note(note_id: str, updated_note: NoteCreate, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
     
-    existing_note = db.query(Note).filter(Note.id == note_id).first()
-
-    if not existing_note:
-        raise HTTPException(404, detail="Note not Found.")
-    
-    if not existing_note.user_id == user.id:
-        raise HTTPException(404, detail="Note not Found.")
+    existing_note = get_note_or_404(note_id, user, db)
     
     existing_note.title = updated_note.title
     existing_note.content = updated_note.content
@@ -194,15 +190,9 @@ def update_note(note_id: str, updated_note: NoteCreate, user: User = Depends(get
         updated_at=existing_note.updated_at
     )
 
-@app.delete("/notes/{note_id}")
+@app.delete("/notes/{note_id}", status_code=204)
 def delete_note(note_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
-    existing_note = db.query(Note).filter(Note.id == note_id).first()
-
-    if not existing_note:
-        raise HTTPException(404, detail="Note not Found.")
-    
-    if not existing_note.user_id == user.id:
-        raise HTTPException(404, detail="Note not Found.")
+    existing_note = get_note_or_404(note_id, user, db)
     
     title = existing_note.title
     
