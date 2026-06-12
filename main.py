@@ -168,3 +168,45 @@ def read_one_note(note_id: str, user: User = Depends(get_current_user), db: Sess
         created_at=existing_note.created_at,
         updated_at=existing_note.updated_at
     )
+
+@app.put("/notes/{note_id}", response_model=NoteResponse)
+def update_note(note_id: str, updated_note: NoteCreate, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
+    
+    existing_note = db.query(Note).filter(Note.id == note_id).first()
+
+    if not existing_note:
+        raise HTTPException(404, detail="Note not Found.")
+    
+    if not existing_note.user_id == user.id:
+        raise HTTPException(404, detail="Note not Found.")
+    
+    existing_note.title = updated_note.title
+    existing_note.content = updated_note.content
+
+    db.commit()
+    db.refresh(existing_note)
+
+    return NoteResponse(
+        id=existing_note.id,
+        title=existing_note.title,
+        content=existing_note.content,
+        created_at=existing_note.created_at,
+        updated_at=existing_note.updated_at
+    )
+
+@app.delete("/notes/{note_id}")
+def delete_note(note_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
+    existing_note = db.query(Note).filter(Note.id == note_id).first()
+
+    if not existing_note:
+        raise HTTPException(404, detail="Note not Found.")
+    
+    if not existing_note.user_id == user.id:
+        raise HTTPException(404, detail="Note not Found.")
+    
+    title = existing_note.title
+    
+    db.delete(existing_note)
+    db.commit()
+
+    return { "message": f"Note '{title}' successfully deleted"}
