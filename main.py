@@ -4,11 +4,9 @@ from sqlalchemy.orm import Session
 from database import engine, LocalSession, Base
 from models import User, Note
 from schemas import UserCreate, UserResponse, NoteUpdate, TokenPayload, TokenResponse, NoteCreate, NoteResponse
-from argon2 import PasswordHasher
-from argon2.exceptions import VerificationError
+from auth import hash_password, authenticate_user
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
-from uuid6 import UUID
 import os
 import jwt
 
@@ -40,7 +38,6 @@ def verify_access_token(token):
         raise HTTPException( 401, "Token is invalid." )
         
 
-pwHasher = PasswordHasher()
 Base.metadata.create_all(engine)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -54,18 +51,7 @@ def get_database():
     finally:
         db.close()
 
-def authenticate_user(username, password, db):
-    existing_user = db.query(User).filter(User.username == username).first()
 
-    if not existing_user:
-        raise HTTPException(401, "Invalid credentials.")
-
-    try:
-        pwHasher.verify(existing_user.password, password)
-    except VerificationError:
-        raise HTTPException(401, "Invalid credentials.")
-    
-    return existing_user
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_database)):
     
@@ -94,7 +80,7 @@ def read_root():
 
 @app.post("/register", response_model=UserResponse, status_code=201)
 def register(user: UserCreate, db: Session = Depends(get_database)):
-    hashed_password = pwHasher.hash(user.password)
+    hashed_password = hash_password(user.password)
 
     existing_user = db.query(User).filter(User.username == user.username).first()
     if existing_user is not None:
