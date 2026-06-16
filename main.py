@@ -3,40 +3,9 @@ from fastapi.security.oauth2 import OAuth2PasswordBearer, OAuth2PasswordRequestF
 from sqlalchemy.orm import Session
 from database import engine, LocalSession, Base
 from models import User, Note
-from schemas import UserCreate, UserResponse, NoteUpdate, TokenPayload, TokenResponse, NoteCreate, NoteResponse
-from auth import hash_password, authenticate_user
-from datetime import datetime, timedelta, timezone
-from dotenv import load_dotenv
-import os
-import jwt
+from schemas import UserCreate, UserResponse, NoteUpdate, TokenResponse, NoteCreate, NoteResponse
+from auth import hash_password, authenticate_user, create_access_token, verify_access_token
 
-load_dotenv()
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = "HS256"
-
-def create_access_token(user_id):
-    now = datetime.now(timezone.utc)
-    expiry_time = now + timedelta(minutes=15)
-
-    token_payload = TokenPayload(
-        sub=str(user_id),
-        iat=int(now.timestamp()),
-        exp=int(expiry_time.timestamp())
-        )
-    
-    encoded_jwt = jwt.encode(payload=token_payload.model_dump() , key=SECRET_KEY , algorithm=ALGORITHM)
-
-    return encoded_jwt
-
-def verify_access_token(token):
-    try:
-        decoded_jwt = jwt.decode(token, key=SECRET_KEY, algorithms=[ALGORITHM])
-        return { "token_status": "valid", "data": decoded_jwt }
-    except jwt.ExpiredSignatureError:
-        raise HTTPException( 401, "Token has expired." )
-    except jwt.InvalidTokenError:
-        raise HTTPException( 401, "Token is invalid." )
-        
 
 Base.metadata.create_all(engine)
 
@@ -52,12 +21,11 @@ def get_database():
         db.close()
 
 
-
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_database)):
     
     decoded_data = verify_access_token(token)
 
-    current_user: User = db.query(User).filter(User.id == decoded_data["data"]["sub"]).first()
+    current_user: User = db.query(User).filter(User.id == decoded_data["sub"]).first()
 
     if current_user is None:
         raise HTTPException(401, "User does not exist.")
