@@ -2,12 +2,13 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security.oauth2 import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from database import engine, LocalSession, Base
-from models import User
-from schemas import UserCreate, UserResponse, TokenPayload, TokenResponse
+from models import User, Note
+from schemas import UserCreate, UserResponse, NoteUpdate, TokenPayload, TokenResponse, NoteCreate, NoteResponse
 from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
+from uuid6 import UUID
 import os
 import jwt
 
@@ -70,25 +71,33 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     
     decoded_data = verify_access_token(token)
 
-    current_user: User = db.query(User).filter(User.id == int(decoded_data["data"]["sub"])).first()
+    current_user: User = db.query(User).filter(User.id == decoded_data["data"]["sub"]).first()
 
     if current_user is None:
         raise HTTPException(401, "User does not exist.")
 
     return current_user
 
+def get_note_or_404(note_id, user, db):
+    existing_note = db.query(Note).filter(Note.id == note_id).first()
 
+    if not existing_note:
+        raise HTTPException(404, detail="Note not Found.")
+    
+    if not existing_note.user_id == user.id:
+        raise HTTPException(404, detail="Note not Found.")
+    return existing_note
 
-@app.get("/")
+@app.get("/", status_code=200)
 def read_root():
-    return { "message": "Hello, welcome!\n To register here. Access /register to register. Once done, visit /login." }
+    return { "message": "API is successfully running." }
 
-@app.post("/register")
+@app.post("/register", response_model=UserResponse, status_code=201)
 def register(user: UserCreate, db: Session = Depends(get_database)):
     hashed_password = pwHasher.hash(user.password)
 
     existing_user = db.query(User).filter(User.username == user.username).first()
-    if (existing_user != None):
+    if existing_user is not None:
         raise HTTPException(409, detail="Username is already taken.")
 
     new_user = User(
@@ -102,9 +111,16 @@ def register(user: UserCreate, db: Session = Depends(get_database)):
     db.commit()
     db.refresh(new_user)
 
-    return { "message": f"Registration successful.\nWelcome, {new_user.fname}.", "user_id:" : new_user.id,  }
+    return UserResponse(
+        id=new_user.id,
+        username=new_user.username,
+        name = {
+            "fname": new_user.fname,
+            "sname": new_user.sname
+        }
+    )
 
-@app.post("/login")
+@app.post("/login", response_model=TokenResponse, status_code=200)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_database)):
     current_user = authenticate_user(form_data.username, form_data.password, db)
     token = create_access_token(current_user.id)
@@ -114,7 +130,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         token_type="bearer"
     )
 
-@app.get("/users/me", response_model=UserResponse)
+@app.get("/users/me", response_model=UserResponse, status_code=200)
 def read_users_me(user: User = Depends(get_current_user)):
     return UserResponse(
         id=user.id,
@@ -124,3 +140,63 @@ def read_users_me(user: User = Depends(get_current_user)):
             "sname": user.sname
         }
     )
+
+@app.post("/notes", response_model=NoteResponse, status_code=201)
+def create_note(note: NoteCreate, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
+    new_note = Note(
+        user_id=user.id,
+        title=note.title,
+        content=note.content,
+    )
+
+    db.add(new_note)
+    db.commit()
+    db.refresh(new_note)
+
+    return new_note
+
+@app.get("/notes", response_model=list[NoteResponse], status_code=200)
+def read_notes(user: User = Depends(get_current_user), db: Session = Depends(get_database)):
+    return db.query(Note).filter(Note.user_id == user.id).all()
+
+@app.get("/notes/{note_id}", response_model=NoteResponse, status_code=200)
+def read_one_note(note_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
+
+    existing_note = get_note_or_404(note_id, user, db)
+    
+    return NoteResponse(
+        id=existing_note.id,
+        title=existing_note.title,
+        content=existing_note.content,
+        created_at=existing_note.created_at,
+        updated_at=existing_note.updated_at
+    )
+
+@app.patch("/notes/{note_id}", response_model=NoteResponse, status_code=200)
+def update_note(note_id: str, updated_note: NoteUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
+    
+    existing_note = get_note_or_404(note_id, user, db)
+
+    if updated_note.title is None and updated_note.content is None:
+        raise HTTPException(400, detail="No fields provided to update.")
+    
+    if updated_note.title is not None:
+        existing_note.title = updated_note.title
+    if updated_note.content is not None:
+        existing_note.content = updated_note.content
+
+    db.commit()
+    db.refresh(existing_note)
+
+    return existing_note
+
+@app.delete("/notes/{note_id}", status_code=204)
+def delete_note(note_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
+    existing_note = get_note_or_404(note_id, user, db)
+    
+    title = existing_note.title
+    
+    db.delete(existing_note)
+    db.commit()
+
+    return { "message": f"Note '{title}' successfully deleted"}

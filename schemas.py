@@ -1,7 +1,9 @@
 from typing import Annotated
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 from argon2 import PasswordHasher
+from uuid6 import UUID
 from datetime import datetime
+from typing import Optional
 import re
 
 strippedStr = Annotated[str, StringConstraints(strip_whitespace=True)]
@@ -22,9 +24,9 @@ class UserCreate(BaseModel):
         if not re.search(r'[0-9]', value):
             raise ValueError("Password must contain at least 1 number.")
         if not re.search(r'[A-Z]', value):
-            raise ValueError("Password must contain at least uppercase letter.")
+            raise ValueError("Password must contain at least one uppercase letter.")
         if not re.search(r'[a-z]', value):
-            raise ValueError("Password must contain at least lowercase letter.")
+            raise ValueError("Password must contain at least one lowercase letter.")
         if not re.search(r'[ !"#$%&\'()*+,-./:;<=>?@\[\]^_`{|}~]', value):
             raise ValueError("Password must contain at least one special character.")
         if re.search(" ", value):
@@ -33,7 +35,7 @@ class UserCreate(BaseModel):
         return value
 
 class UserResponse(BaseModel):
-    id: int = Field()
+    id: str = Field()
     username: str = Field()
     name: Name
 
@@ -46,3 +48,19 @@ class TokenPayload(BaseModel):
     sub: str
     exp: int
     iat: int
+
+
+class NoteCreate(BaseModel):
+    title: strippedStr = Field(min_length=1)
+    content: strippedStr = Field(min_length=1)
+
+class NoteUpdate(BaseModel):
+    title: Optional[strippedStr] = Field(default=None, min_length=1)
+    content: Optional[strippedStr] = Field(default=None, min_length=1)
+
+class NoteResponse(BaseModel):
+    id: str
+    title: str
+    content: str
+    created_at: datetime
+    updated_at: datetime
