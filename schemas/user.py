@@ -1,13 +1,9 @@
 from typing import Annotated
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 from argon2 import PasswordHasher
-from uuid6 import UUID
-from datetime import datetime
-from typing import Optional
 import re
 
 strippedStr = Annotated[str, StringConstraints(strip_whitespace=True)]
-pwHasher = PasswordHasher()
 
 class Name(BaseModel):
     fname: strippedStr
@@ -38,29 +34,3 @@ class UserResponse(BaseModel):
     id: str = Field()
     username: str = Field()
     name: Name
-
-
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = 'bearer'
-
-class TokenPayload(BaseModel):
-    sub: str
-    exp: int
-    iat: int
-
-
-class NoteCreate(BaseModel):
-    title: strippedStr = Field(min_length=1)
-    content: strippedStr = Field(min_length=1)
-
-class NoteUpdate(BaseModel):
-    title: Optional[strippedStr] = Field(default=None, min_length=1)
-    content: Optional[strippedStr] = Field(default=None, min_length=1)
-
-class NoteResponse(BaseModel):
-    id: str
-    title: str
-    content: str
-    created_at: datetime
-    updated_at: datetime
