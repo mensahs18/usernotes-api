@@ -1,36 +1,15 @@
 from fastapi import FastAPI, Depends, HTTPException
-from fastapi.security.oauth2 import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from database import engine, LocalSession, Base
+from database import engine, Base
 from models import User, Note
+from dependencies import get_current_user, get_database
 from schemas import UserCreate, UserResponse, NoteUpdate, TokenResponse, NoteCreate, NoteResponse
-from auth import hash_password, authenticate_user, create_access_token, verify_access_token
-
+from auth import hash_password, authenticate_user, create_access_token
 
 Base.metadata.create_all(engine)
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
-
 app = FastAPI()
-
-def get_database():
-    db = LocalSession()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_database)):
-    
-    decoded_data = verify_access_token(token)
-
-    current_user: User = db.query(User).filter(User.id == decoded_data["sub"]).first()
-
-    if current_user is None:
-        raise HTTPException(401, "User does not exist.")
-
-    return current_user
 
 def get_note_or_404(note_id, user, db):
     existing_note = db.query(Note).filter(Note.id == note_id).first()
@@ -118,13 +97,7 @@ def read_one_note(note_id: str, user: User = Depends(get_current_user), db: Sess
 
     existing_note = get_note_or_404(note_id, user, db)
     
-    return NoteResponse(
-        id=existing_note.id,
-        title=existing_note.title,
-        content=existing_note.content,
-        created_at=existing_note.created_at,
-        updated_at=existing_note.updated_at
-    )
+    return existing_note
 
 @app.patch("/notes/{note_id}", response_model=NoteResponse, status_code=200)
 def update_note(note_id: str, updated_note: NoteUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
