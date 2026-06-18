@@ -6,10 +6,10 @@ Base.metadata.create_all(engine)
 
 app = FastAPI()
 
-@app.get("/", status_code=200)
+@app.get("/", status_code=200, tags=["root"])
 def read_root():
     return { "message": "API is successfully running." }
 
-app.include_router(user_router)
-app.include_router(note_router)
+app.include_router(user_router, prefix="/users", tags=["users"])
+app.include_router(note_router, tags=["notes"])
 

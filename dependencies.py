@@ -5,7 +5,7 @@ from database import LocalSession
 from models import User
 from auth import verify_access_token
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/login")
 
 def get_database():
     db = LocalSession()

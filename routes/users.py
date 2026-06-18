@@ -46,7 +46,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         token_type="bearer"
     )
 
-@router.get("/users/me", response_model=UserResponse, status_code=200)
+@router.get("/me", response_model=UserResponse, status_code=200)
 def read_users_me(user: User = Depends(get_current_user)):
     return UserResponse(
         id=user.id,
