@@ -36,7 +36,7 @@ A secure REST API backend built with FastAPI and SQLAlchemy, implementing JWT au
 - [ ] PostgreSQL with asyncpg driver
 
 ### Architecture & Production
-- [ ] Refactor into modules
+- [X] Refactor into modules
 - [ ] Dockerfile
 - [ ] Docker Compose
 - [ ] Logging
@@ -76,8 +76,9 @@ http://127.0.0.1:8000/docs
 - Protected all routes, and added valid status codes
 - Incremental integer ID replaced with UUID for better scalability
 - UUID alongside get_current_user() dependency, and object-level auth prevents BOLA
-- Working on refactoring project, then writing unit and integration tests for both CRUD and authentication
-- Async/postgre planned
+- Project refactored into modular components
+- Unit and integration tests to be implemented
+- Async/PostgreSQL migration planned
 
 ## Design Decisions & Tradeoffs
 
