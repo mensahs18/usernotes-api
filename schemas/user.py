@@ -26,7 +26,7 @@ class UserCreate(BaseModel):
         if not re.search(r'[ !"#$%&\'()*+,-./:;<=>?@\[\]^_`{|}~]', value):
             raise ValueError("Password must contain at least one special character.")
         if re.search(" ", value):
-            raise ValueError("Password must not contains spaces.")
+            raise ValueError("Password must not contain spaces.")
         
         return value
 
