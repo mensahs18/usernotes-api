@@ -1,5 +1,6 @@
 import pytest
 
+# Registration tests
 def test_register(client):
     response = client.post(
         url="/users/register",
@@ -43,6 +44,7 @@ def test_duplicate_username(client):
     assert response.status_code == 409
 
 @pytest.mark.parametrize("username, expected_message", [
+    ("", "at least 3"),
     ("fo", "at least 3")
 ])
 def test_username_validation(client, username, expected_message):
@@ -85,3 +87,58 @@ def test_password_validation(client, password, expected_message):
 
     assert response.status_code == 422
     assert expected_message in response.json()['detail'][0]['msg']
+
+# Login tests
+
+def test_login(client):
+    client.post(
+        url="/users/register",
+        json={
+            "username": "testuser2",
+            "password": "2!TestPassword",
+            "name": {
+                "fname": "testFirstname",
+                "sname": "testSurname"
+            }
+        },
+    )
+
+    response = client.post(
+        url="/users/login",
+        data={
+            "username": "testuser2",
+            "password": "2!TestPassword"
+        }
+    )
+
+    assert response.status_code == 200
+    assert response.json()["access_token"]
+
+@pytest.mark.parametrize("username, password", [
+    ("correctuser", "1!Falsepassword"),
+    ("correctuser", "falsepassword"),
+    ("falseuser", "1!CorrectPassword")
+])
+def test_login_validation(client, username, password):
+    client.post(
+        url="/users/register",
+        json={
+            "username": "correctuser",
+            "password": "1!CorrectPassword",
+            "name": {
+                "fname": "testFirstname",
+                "sname": "testSurname"
+            }
+        },
+    )
+
+    response = client.post(
+        url="/users/login",
+        data={
+            "username": username,
+            "password": password
+        }
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid credentials."
