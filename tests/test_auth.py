@@ -83,7 +83,7 @@ def test_register_incorrect_data_types(client, login_payload):
     )
 
     assert response.status_code == 422
-    assert "Input should be a valid string" in response.json()['detail'][0]['msg']
+    assert "valid string" in response.json()['detail'][0]['msg']
 
 
 
@@ -106,6 +106,31 @@ def test_register_username_validation(client, username, expected_message):
 
     assert expected_message in response.json()['detail'][0]['msg']
     assert response.status_code == 422
+
+@pytest.mark.parametrize("malicious_input", [
+    "' OR '1'='1",
+    "'; DROP TABLE users; --",
+    "' OR 1=1 --",
+    "\\",
+    "' UNION SELECT * FROM users --",
+    "A" * 10000,
+    "%s%s%s%s"
+])
+def test_malicious_registration(client, malicious_input):
+    response = client.post(
+        url="/users/register",
+        json={
+            "username": malicious_input,
+            "password": "1!TestPassword",
+            "name": {
+                "fname": "testFirstname",
+                "sname": "testSurname"
+            }
+        },
+    )
+
+    assert response.status_code != 500
+
 
 @pytest.mark.parametrize("password, expected_message", [
     ("Short!", "at least 8"),
@@ -238,3 +263,22 @@ def test_login_json(client):
     )
 
     assert response.status_code == 422
+
+@pytest.mark.parametrize("malicious_input", [
+    "' OR '1'='1",
+    "'; DROP TABLE users; --",
+    "' OR 1=1 --",
+    "\\",
+    "' UNION SELECT * FROM users --",
+    "%s%s%s%s"
+])
+def test_malicious_login(client, malicious_input):
+    response = client.post(
+        url="/users/login",
+        data={
+            "username": malicious_input,
+            "password": malicious_input
+        },
+    )
+
+    assert response.status_code in [401,422]
