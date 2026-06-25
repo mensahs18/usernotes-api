@@ -43,11 +43,55 @@ def test_duplicate_username(client):
 
     assert response.status_code == 409
 
+def test_register_missing_username(client):
+    response = client.post(
+        url="/users/register",
+        json={
+            "password": "1!TestPassword",
+            "name": {
+                "fname": "testFirstname",
+                "sname": "testSurname"
+            }
+        },
+    )
+
+    assert response.status_code == 422
+
+def test_register_missing_name_fields(client):
+    response = client.post(
+        url="/users/register",
+        json={
+            "username": "testuser1",
+            "password": "1!TestPassword",
+        },
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("login_payload", [
+    {"username": 4, "password": "valid_Password1!", "name": {"fname": "John", "sname": "Smith"}},
+    {"username": "valid_user", "password": ["array", "for", "pw"], "name": {"fname": "John", "sname": "Smith"}},
+    {"username": "valid_user", "password": "valid_Password1!", "name": {"fname": 4.5, "sname": "Smith"}},
+    {"username": "valid_user", "password": "valid_Password1!", "name": {"fname": "John", "sname": True}},
+    
+])
+def test_register_incorrect_data_types(client, login_payload):
+    response = client.post(
+        url="/users/register",
+        json=login_payload
+    )
+
+    assert response.status_code == 422
+    assert "Input should be a valid string" in response.json()['detail'][0]['msg']
+
+
+
 @pytest.mark.parametrize("username, expected_message", [
     ("", "at least 3"),
     ("fo", "at least 3")
 ])
-def test_username_validation(client, username, expected_message):
+def test_register_username_validation(client, username, expected_message):
     response = client.post(
         url="/users/register",
         json={
@@ -117,7 +161,7 @@ def test_login(client):
 @pytest.mark.parametrize("username, password", [
     ("correctuser", "1!Falsepassword"),
     ("correctuser", "falsepassword"),
-    ("falseuser", "1!CorrectPassword")
+    ("falseuser", "1!CorrectPassword"),
 ])
 def test_login_validation(client, username, password):
     client.post(
@@ -142,3 +186,55 @@ def test_login_validation(client, username, password):
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Invalid credentials."
+
+@pytest.mark.parametrize("username, password", [
+    ("", ""),
+    ("", "1!CorrectPassword"),
+    ("correctuser", "")
+])
+def test_empty_login_fields(client, username, password):
+    client.post(
+    url="/users/register",
+        json={
+            "username": "correctuser",
+            "password": "1!CorrectPassword",
+            "name": {
+                "fname": "testFirstname",
+                "sname": "testSurname"
+            }
+    },
+)
+
+    response = client.post(
+        url="/users/login",
+        data={
+            "username": username,
+            "password": password
+        }
+    )
+
+    assert response.status_code == 422
+
+
+def test_login_json(client):
+    client.post(
+        url="/users/register",
+        json={
+            "username": "jsonuser",
+            "password": "3!TestPassword",
+            "name": {
+                "fname": "testFirstname",
+                "sname": "testSurname"
+            }
+        },
+    )
+
+    response = client.post(
+        url="/users/login",
+        json={
+            "username": "jsonuser",
+            "password": "3!TestPassword"
+        }
+    )
+
+    assert response.status_code == 422
