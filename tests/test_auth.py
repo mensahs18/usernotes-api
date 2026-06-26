@@ -1,4 +1,5 @@
 import pytest
+from freezegun import freeze_time
 
 # Registration tests
 def test_register(client):
@@ -282,3 +283,49 @@ def test_malicious_login(client, malicious_input):
     )
 
     assert response.status_code in [401,422]
+
+
+# JWT tests
+
+@pytest.fixture()
+def registered_user(client):
+    client.post(
+        url="/users/register",
+        json={
+            "username": "testuser0",
+            "password": "Valid1!Password",
+            "name": {
+                "fname": "testFirstname",
+                "sname": "testSurname"
+            }
+        },
+    )
+
+def test_valid_token(client, registered_user):
+    response = client.post("/users/login", data={
+            "username": "testuser0",
+            "password": "Valid1!Password"
+        })
+    token = response.json()["access_token"]
+
+    response = client.get("/users/me", headers={
+            "Authorization": f"Bearer {token}"
+        })
+    
+    assert response.status_code == 200
+
+def test_expired_token(client, registered_user):
+    with freeze_time("2026-01-01 00:00:00"):
+        response = client.post("/users/login", data={
+            "username": "testuser0",
+            "password": "Valid1!Password"
+        })
+        token = response.json()["access_token"]
+
+    # Token currently expires after 15 minutes. freeze_time allows manual time manipulation
+    with freeze_time("2026-01-01 00:20:00"):
+        response = client.get("/users/me", headers={
+            "Authorization": f"Bearer {token}"
+        })
+
+        assert response.status_code == 401
