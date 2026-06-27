@@ -1,5 +1,7 @@
 import pytest
 from freezegun import freeze_time
+from conftest import get_test_database
+from models import User
 
 # Registration tests
 def test_register(client):
@@ -329,3 +331,28 @@ def test_expired_token(client, registered_user):
         })
 
         assert response.status_code == 401
+
+# Hashing tests
+
+def test_password_hashed_in_db(client):
+    password = "1!TestPassword"
+    username = "testuser"
+    client.post(
+        url="/users/register",
+        json={
+            "username": username,
+            "password": password,
+            "name": {
+                "fname": "testFirstname",
+                "sname": "testSurname"
+            }
+        },
+    )
+
+    db = next(get_test_database())
+
+    current_user = db.query(User).filter(User.username == username).first()
+
+    assert current_user is not None
+    assert current_user.password != password
+    assert current_user.password.startswith("$argon2id")
