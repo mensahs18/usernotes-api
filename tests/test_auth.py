@@ -291,22 +291,23 @@ def test_malicious_login(client, malicious_input):
 
 @pytest.fixture()
 def registered_user(client):
-    client.post(
-        url="/users/register",
-        json={
-            "username": "testuser0",
-            "password": "Valid1!Password",
-            "name": {
-                "fname": "testFirstname",
-                "sname": "testSurname"
-            }
-        },
-    )
+    user_data = { 
+        "username": "testuser0",
+        "password": "Valid1!Password",
+        "name": {
+            "fname": "testFirstname",
+            "sname": "testSurname"
+        }
+    }
+
+    client.post(url="/users/register",json=user_data)
+
+    return user_data
 
 def test_valid_token(client, registered_user):
     response = client.post("/users/login", data={
-            "username": "testuser0",
-            "password": "Valid1!Password"
+            "username": registered_user["username"],
+            "password": registered_user["password"]
         })
     token = response.json()["access_token"]
 
@@ -319,8 +320,8 @@ def test_valid_token(client, registered_user):
 def test_expired_token(client, registered_user):
     with freeze_time("2026-01-01 00:00:00"):
         response = client.post("/users/login", data={
-            "username": "testuser0",
-            "password": "Valid1!Password"
+            "username": registered_user["username"],
+            "password": registered_user["password"]
         })
         token = response.json()["access_token"]
 
