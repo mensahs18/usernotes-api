@@ -332,6 +332,22 @@ def test_expired_token(client, registered_user):
 
         assert response.status_code == 401
 
+def test_missing_token(client):
+    response = client.get("/users/me")
+    assert response.status_code == 401
+
+@pytest.mark.parametrize("bad_token, description", [
+    ("completelyinvalidtoken", "malformed"),
+    ("abc.def.ghi", "bad structure"),
+    ("Bearer falseprefix", "bad prefix"),
+    ("kbsajhbyubr8ag38uyy.afbhkjrey83.incorrectsignature", "tampered signature"),
+])
+def test_invalid_tokens(client, registered_user, bad_token, description):
+    response = client.get("/users/me", headers={
+        "Authorization": f"Bearer {bad_token}"
+    })
+    assert response.status_code == 401, description
+    
 # Hashing tests
 
 def test_password_hashed_in_db(client):
