@@ -26,8 +26,8 @@ A secure REST API backend built with FastAPI and SQLAlchemy, implementing JWT au
 - [ ] Rate limiting (Redis) against DoS
 
 ### Testing
-- [ ] Pytest test suite
-- [ ] Authentication tests
+- [X] Pytest test suite
+- [X] Authentication tests
 - [ ] API Integration tests
 - [ ] Async testing
 
@@ -77,13 +77,16 @@ http://127.0.0.1:8000/docs
 - Incremental integer ID replaced with UUID for better scalability
 - UUID alongside get_current_user() dependency, and object-level auth prevents BOLA
 - Project refactored into modular components
-- Unit and integration tests to be implemented
+- Tests implemented for authentication, testing happy paths and edge cases
+- Tests to be implemented for note routes
 - Async/PostgreSQL migration planned
 
 ## Design Decisions & Tradeoffs
 
 - SQLite transition to PostgreSQL: PostgreSQL allows for high concurrency and horizontal scaling. SQLite is used initially due to its ease of use, easy testing and simple configuration.
 - Write Concurrency Limits: Testing in the `notes-routes` PR confirms SQLite locks under concurrent `POST` requests. By design, SQLite serialises writes while allowing parallel reads. PostgreSQL is architected and preferred in my use case for high-concurrency write access.
+
+- Username Case-Sensitivity: Usernames are currently case-sensitive at the database level. A follow-up step i.e. lowercasing on registration and login, is planned to prevent duplicate accounts and authentication friction between equivalent usernames such as `admin1` and `Admin1`.
 
 - Argon2 hashing vs. `bcrypt` with `passlib`: Although initially considered, bcrypt falls short of argon2 hashing against modern GPU brute force attacks. Argon2 is the winner of the PHC and is recommended by the OWASP, due to being memory-hard.
 
