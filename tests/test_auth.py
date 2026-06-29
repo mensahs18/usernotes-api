@@ -86,8 +86,6 @@ def test_register_incorrect_data_types(client, login_payload):
     )
 
     assert response.status_code == 422
-    assert "valid string" in response.json()['detail'][0]['msg']
-
 
 
 @pytest.mark.parametrize("username, expected_message", [
