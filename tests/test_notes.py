@@ -70,4 +70,29 @@ def test_create_note_unauthenticated(client):
 
     assert response.status_code == 401
     
-    
+
+def test_get_individual_note(authed_client):
+
+    title = "Test Note C"
+    content = "Body of C"
+
+    response = authed_client.post(
+    "/notes",
+    json={
+        "title": title,
+        "content": content
+    })
+
+    assert response.status_code == 201, "Note creation failed"
+
+    note_id = response.json()["id"]
+
+    get_response = authed_client.get(f"/notes/{note_id}")
+
+    assert get_response.status_code == 200, "/GET note failed"
+
+    assert get_response.json()["id"] == note_id
+    assert get_response.json()["title"] == title
+    assert get_response.json()["content"] == content
+
+
