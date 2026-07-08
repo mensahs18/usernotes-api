@@ -105,3 +105,22 @@ def test_get_invalid_note(authed_client):
     response = authed_client.get("/notes/1")
 
     assert response.status_code == 404
+
+def test_get_note_unauthorized_user(authed_client, client):
+
+    note_response = authed_client.post(
+    "/notes",
+    json={
+        "title": "Foo Note",
+        "content": "Foo Note's contents"
+    })
+
+    assert note_response.status_code == 201, "Note creation failed"
+
+    note_id = note_response.json()["id"]
+
+    create_and_login_user(client, "username1")
+
+    response = client.get(f"/notes/{note_id}")
+
+    assert response.status_code == 404
