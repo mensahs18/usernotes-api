@@ -2,14 +2,19 @@ import pytest
 
 @pytest.fixture
 def authed_client(client):
+    create_and_login_user(client, "username0")
+
+    return client
+
+def create_and_login_user(client, username, password="ValidPassword1!"):
     client.post(
         "/users/register",
         json={
-            "username": "notesuser0",
-            "password": "0!NotePassword",
+            "username": username,
+            "password": password,
             "name": {
-                "fname": "Tester",
-                "sname": "Zero"
+                "fname": username,
+                "sname": "TESTER"
             }
         }
     )
@@ -17,8 +22,8 @@ def authed_client(client):
     response = client.post(
         "/users/login",
         data={
-            "username": "notesuser0",
-            "password": "0!NotePassword"
+            "username": username,
+            "password": password
         }
     )
 
@@ -96,3 +101,7 @@ def test_get_individual_note(authed_client):
     assert get_response.json()["content"] == content
 
 
+def test_get_invalid_note(authed_client):
+    response = authed_client.get("/notes/1")
+
+    assert response.status_code == 404
