@@ -155,3 +155,79 @@ def test_get_notes(authed_client):
 def test_get_notes_unauthenticated(client):
     response = client.get("/notes")
     assert response.status_code == 401
+
+def test_update_note(authed_client):
+    create_response = authed_client.post(
+        "/notes",
+        json={
+            "title": "Incorrect Title",
+            "content": "Correct Content"
+        }
+    )
+
+    assert create_response.status_code == 201, "Failed to initialise note"
+
+    note_id = create_response.json()["id"]
+
+    response = authed_client.patch(
+        f"/notes/{note_id}",
+        json={
+            "title": "Correct Title"
+        }
+    )
+
+    assert response.status_code == 200, "Failed to update note"
+    assert response.json()["title"] == "Correct Title"
+    assert response.json()["content"] == "Correct Content"
+
+    get_response = authed_client.get(f"/notes/{note_id}")
+
+    assert get_response.status_code == 200, "Note not retrieved by /GET"
+    assert get_response.json()["title"] == "Correct Title"
+    assert get_response.json()["content"] == "Correct Content"
+
+def test_update_note_unauthenticated(client):
+
+    response = client.patch("/notes/",
+        json={
+            "title": "Patched Title",
+            "content": "Patched Content"
+        }
+    )
+    
+    assert response.status_code == 401
+
+def test_update_note_unauthorized_user(authed_client):
+
+    note_response = authed_client.post(
+        "/notes",
+        json={
+            "title": "Foo Note",
+            "content": "Foo Note's contents"
+        }
+    )
+
+    assert note_response.status_code == 201, "Note creation failed"
+
+    note_id = note_response.json()["id"]
+
+    create_and_login_user(authed_client, "username1")
+
+    response = authed_client.patch(
+        f"/notes/{note_id}",
+        json={
+            "title": "Hacked Title"
+        }
+    )
+
+    assert response.status_code == 404
+
+def test_update_invalid_note(authed_client):
+    response = authed_client.patch("/notes/019f48ab-4ef6-720d-8e27-ad439414a327",
+        json={
+            "title": "Invalid title",
+            "content": "No base content"
+        }
+    )
+
+    assert response.status_code == 404
