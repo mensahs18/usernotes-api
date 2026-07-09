@@ -106,7 +106,7 @@ def test_get_invalid_note(authed_client):
 
     assert response.status_code == 404
 
-def test_get_note_unauthorized_user(authed_client, client):
+def test_get_note_unauthorized_user(authed_client):
 
     note_response = authed_client.post(
     "/notes",
@@ -119,8 +119,39 @@ def test_get_note_unauthorized_user(authed_client, client):
 
     note_id = note_response.json()["id"]
 
-    create_and_login_user(client, "username1")
+    create_and_login_user(authed_client, "username1")
 
-    response = client.get(f"/notes/{note_id}")
+    response = authed_client.get(f"/notes/{note_id}")
 
     assert response.status_code == 404
+
+def test_get_notes(authed_client):
+    note_response_a = authed_client.post(
+        "/notes",
+        json={
+            "title": "Foo Note A", "content": "A's contents"
+        }
+    )
+
+    assert note_response_a.status_code == 201, "Note initialisation fail"
+
+    note_response_b = authed_client.post(
+        "/notes",
+        json={
+            "title": "Foo Note B", "content": "B's contents"
+        }
+    )
+
+    assert note_response_b.status_code == 201, "Note initialisation fail"
+
+    response = authed_client.get("/notes")
+
+    assert len(response.json()) == 2
+
+    titles = [note["title"] for note in response.json()]
+    assert "Foo Note A" in titles
+    assert "Foo Note B" in titles
+
+def test_get_notes_unauthenticated(client):
+    response = client.get("/notes")
+    assert response.status_code == 401
