@@ -188,7 +188,7 @@ def test_update_note(authed_client):
 
 def test_update_note_unauthenticated(client):
 
-    response = client.patch("/notes/",
+    response = client.patch("/notes/50",
         json={
             "title": "Patched Title",
             "content": "Patched Content"
@@ -229,5 +229,46 @@ def test_update_invalid_note(authed_client):
             "content": "No base content"
         }
     )
+
+    assert response.status_code == 404
+
+def test_delete_note(authed_client):
+    create_response = authed_client.post(
+        "/notes",
+        json={
+            "title": "Test note",
+            "content": "Test note contents"
+        }
+    )
+
+    assert create_response.status_code == 201, "Failed to initialise note"
+
+    note_id = create_response.json()["id"]
+
+    response = authed_client.delete(f"/notes/{note_id}")
+
+    assert response.status_code == 204
+
+def test_delete_note_unauthenticated(client):
+    response = client.delete(f"/notes/1")
+
+    assert response.status_code == 401
+
+def test_delete_note_unauthorized_user(authed_client):
+    note_response = authed_client.post(
+        "/notes",
+        json={
+            "title": "By User0",
+            "content": "Unique note"
+        }
+    )
+
+    assert note_response.status_code == 201, "Note creation failed"
+
+    note_id = note_response.json()["id"]
+
+    create_and_login_user(authed_client, "username1")
+
+    response = authed_client.delete(f"/notes/{note_id}")
 
     assert response.status_code == 404
