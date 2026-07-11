@@ -102,7 +102,7 @@ def test_get_individual_note(authed_client):
 
 
 def test_get_invalid_note(authed_client):
-    response = authed_client.get("/notes/1")
+    response = authed_client.get("/notes/019484b2-f300-7000-8000-123456789abc")
 
     assert response.status_code == 404
 
@@ -188,7 +188,7 @@ def test_update_note(authed_client):
 
 def test_update_note_unauthenticated(client):
 
-    response = client.patch("/notes/50",
+    response = client.patch("/notes/019484b2-f300-7000-8000-123456789abc",
         json={
             "title": "Patched Title",
             "content": "Patched Content"
@@ -223,7 +223,7 @@ def test_update_note_unauthorized_user(authed_client):
     assert response.status_code == 404
 
 def test_update_invalid_note(authed_client):
-    response = authed_client.patch("/notes/019f48ab-4ef6-720d-8e27-ad439414a327",
+    response = authed_client.patch("/notes/019484b2-f300-7000-8000-123456789abc",
         json={
             "title": "Invalid title",
             "content": "No base content"
@@ -250,7 +250,7 @@ def test_delete_note(authed_client):
     assert response.status_code == 204
 
 def test_delete_note_unauthenticated(client):
-    response = client.delete(f"/notes/1")
+    response = client.delete(f"/notes/019484b2-f300-7000-8000-123456789abc")
 
     assert response.status_code == 401
 
