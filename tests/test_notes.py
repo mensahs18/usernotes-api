@@ -32,6 +32,9 @@ def create_and_login_user(client, username, password="ValidPassword1!"):
 
     return client
 
+def test_root(client):
+    assert client.get("/").status_code == 200
+
 def test_create_note_successful(authed_client):
     title = "Test Note A"
     content = "This is the body of A"
