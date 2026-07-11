@@ -156,6 +156,29 @@ def test_get_notes_unauthenticated(client):
     response = client.get("/notes")
     assert response.status_code == 401
 
+def test_get_notes_unauthorized_user(authed_client):
+    authed_client.post("/notes", json={
+        "title": "User0's note",
+        "content": "note0 info"
+    })
+
+    create_and_login_user(authed_client, "username1")
+    
+    authed_client.post(
+        "/notes", 
+        json={
+            "title": "User1's note", 
+            "content": "note1 info"
+        }
+    )
+
+    response = authed_client.get("/notes")
+    titles = [note["title"] for note in response.json()]
+
+    assert len(response.json()) == 1
+    assert "User1's note" in titles
+    assert "User0's note" not in titles
+
 def test_update_note(authed_client):
     create_response = authed_client.post(
         "/notes",
