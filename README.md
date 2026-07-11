@@ -28,7 +28,7 @@ A secure REST API backend built with FastAPI and SQLAlchemy, implementing JWT au
 ### Testing
 - [X] Pytest test suite
 - [X] Authentication tests
-- [ ] API Integration tests
+- [X] API Integration tests
 - [ ] Async testing
 
 ### Async & Database
@@ -71,14 +71,14 @@ http://127.0.0.1:8000/docs
 
 ## Status & Current Progress:
 
-- Notes table and Pydantic schemas added
 - Added notes CRUD routes: GET, POST, PATCH (instead of PUT, to align with convention) and DELETE
 - Protected all routes, and added valid status codes
 - Incremental integer ID replaced with UUID for better scalability
 - UUID alongside get_current_user() dependency, and object-level auth prevents BOLA
 - Project refactored into modular components
-- Tests implemented for authentication, testing happy paths and edge cases
-- Tests to be implemented for note routes
+- Integration tests for both routes and authentication implemented for all routes, testing both happy paths, and edge cases, such as unauthenticated user, unauthorized users.
+
+- Version tested and functioning
 - Async/PostgreSQL migration planned
 
 ## Design Decisions & Tradeoffs
