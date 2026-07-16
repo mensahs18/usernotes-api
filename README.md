@@ -59,7 +59,7 @@ SECRET_KEY = 'secret_key_here'
 
 Install required dependencies:
 
-`pip install fastapi uvicorn sqlalchemy argon2-cffi pyjwt python-dotenv pydantic`
+`pip install -r requirements.txt`
 
 Run server:
 
