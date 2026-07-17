@@ -7,12 +7,10 @@ from auth import verify_access_token
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/login")
 
-def get_database():
-    db = LocalSession()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_database():
+    async with LocalSession() as db:
+        yield db  #DB is auto closd at the end under the hood
+
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_database)):
     
