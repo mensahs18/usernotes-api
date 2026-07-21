@@ -2,22 +2,26 @@ from fastapi import HTTPException
 from models import User
 from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError
-
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.concurrency import run_in_threadpool
 
 pwHasher = PasswordHasher()
 
-def authenticate_user(username, password, db):
-    existing_user = db.query(User).filter(User.username == username).first()
+async def authenticate_user(username: str, password: str, db: AsyncSession):
+    result = await db.execute(select(User).where(User.username == username))
+    existing_user = result.scalar_one_or_none()
 
     if not existing_user:
         raise HTTPException(401, "Invalid credentials.")
 
     try:
-        pwHasher.verify(existing_user.password, password)
+        await run_in_threadpool(pwHasher.verify, existing_user.password, password)
     except VerificationError:
         raise HTTPException(401, "Invalid credentials.")
     
     return existing_user
 
-def hash_password(password):
-    return pwHasher.hash(password)
+async def hash_password(password):
+    hashed_pw = await run_in_threadpool(pwHasher.hash, password)
+    return hashed_pw
