@@ -18,8 +18,8 @@ async def setup_and_teardown_db():
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
-def get_test_database():
-    with TestSession() as db:
+async def get_test_database():
+    async with TestSession() as db:
         yield db
 
 @pytest.fixture
