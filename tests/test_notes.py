@@ -259,6 +259,44 @@ async def test_update_invalid_note(authed_client):
 
     assert response.status_code == 404
 
+async def test_update_note_empty_field(authed_client):
+    create_response = await authed_client.post(
+        "/notes",
+        json={
+            "title": "Incorrect Title",
+            "content": "Correct Content"
+        }
+    )
+
+    assert create_response.status_code == 201, "Failed to initialise note"
+
+    note_id = create_response.json()["id"]
+
+    response = await authed_client.patch(
+        f"/notes/{note_id}",
+        json={"title": ""}
+    )
+    assert response.status_code == 422
+
+async def test_update_note_no_fields(authed_client):
+    create_response = await authed_client.post(
+            "/notes",
+            json={
+                "title": "Incorrect Title",
+                "content": "Correct Content"
+            }
+        )
+    
+    assert create_response.status_code == 201, "Failed to initialise note"
+    
+    note_id = create_response.json()["id"]
+    
+    response = await authed_client.patch(
+        f"/notes/{note_id}",
+        json={}
+    )
+    assert response.status_code == 400
+
 async def test_delete_note(authed_client):
     create_response = await authed_client.post(
         "/notes",
