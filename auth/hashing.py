@@ -9,7 +9,9 @@ from fastapi.concurrency import run_in_threadpool
 pwHasher = PasswordHasher()
 
 async def authenticate_user(username: str, password: str, db: AsyncSession):
-    result = await db.execute(select(User).where(User.username == username))
+    clean_username = username.strip().lower()
+
+    result = await db.execute(select(User).where(User.username == clean_username))
     existing_user = result.scalar_one_or_none()
 
     if not existing_user:

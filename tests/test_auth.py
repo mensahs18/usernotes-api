@@ -170,7 +170,12 @@ async def test_password_validation(client, password, expected_message):
 
 # Login tests
 
-async def test_login(client):
+@pytest.mark.parametrize("username", [
+    "testuser2",
+    "TESTUSER2",
+    "TestUser2 ",
+])
+async def test_login(client, username):
     await client.post(
         url="/users/register",
         json={
@@ -186,7 +191,7 @@ async def test_login(client):
     response = await client.post(
         url="/users/login",
         data={
-            "username": "testuser2",
+            "username": username,
             "password": "2!TestPassword"
         }
     )
