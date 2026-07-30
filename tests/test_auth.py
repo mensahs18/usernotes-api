@@ -21,7 +21,13 @@ async def test_register(client):
 
     assert response.status_code == 201
 
-async def test_duplicate_username(client):
+@pytest.mark.parametrize("dupe_username", [
+    "testuserA",
+    "TESTUSERA",
+    "TeStUsErA",
+    "tesTuseRA "
+])
+async def test_duplicate_username(client, dupe_username):
     await client.post(
         url="/users/register",
         json={
@@ -37,7 +43,7 @@ async def test_duplicate_username(client):
     response = await client.post(
         url="/users/register",
         json={
-            "username": "testuserA",
+            "username": dupe_username,
             "password": "1!TestPassword",
             "name": {
                 "fname": "testFirstname",
@@ -92,7 +98,9 @@ async def test_register_incorrect_data_types(client, login_payload):
 
 @pytest.mark.parametrize("username, expected_message", [
     ("", "at least 3"),
-    ("fo", "at least 3")
+    ("fo", "at least 3"),
+    ("ThisIsALongUsername_LargerThan32chars", "cannot be longer than 32"),
+    ("bad.'input", "only contain letters, numbers, hyphens and underscores")
 ])
 async def test_register_username_validation(client, username, expected_message):
     response = await client.post(
@@ -132,12 +140,12 @@ async def test_malicious_registration(client, malicious_input):
         },
     )
 
-    assert response.status_code != 500
+    assert response.status_code == 422
 
 
 @pytest.mark.parametrize("password, expected_message", [
     ("Short!", "at least 8"),
-    ("Aa" * 65, "at most 128"),
+    ("Aa" * 65, "cannot be longer than 128"),
     ("testPassword", "must contain at least 1 number"),
     ("testpassword2", "must contain at least one uppercase"),
     ("CAPSTEST1", "must contain at least one lowercase"),
