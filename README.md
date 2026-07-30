@@ -1,6 +1,6 @@
 # Notes API
 
-A secure REST API backend built with FastAPI and SQLAlchemy, implementing JWT authentication and Argon2 hashing. Users can register, authenticate themselves, and manage personal notes via protected endpoints. Designed with production and security principles in mind. Future plans involve changing endpoints to be asynchronous (async) and migrating database to PostgreSQL for improved concurrency and horizontal scaling. Later, aims to include Redis and Docker.
+A secure asynchronous REST API backend built with FastAPI and SQLAlchemy, implementing JWT authentication and Argon2 hashing. Users can register, authenticate themselves, and manage personal notes via protected endpoints. Designed with production and security principles in mind. Future plans involve migrating database to PostgreSQL for improved concurrency and horizontal scaling. Later, aims to include Redis and Docker.
 
 ## Features
 
@@ -29,10 +29,10 @@ A secure REST API backend built with FastAPI and SQLAlchemy, implementing JWT au
 - [X] Pytest test suite
 - [X] Authentication tests
 - [X] API Integration tests
-- [ ] Async testing
+- [X] Async testing
 
 ### Async & Database
-- [ ] Migrate to async routes and async SQLAlchemy
+- [X] Migrate to async routes and async SQLAlchemy
 - [ ] PostgreSQL with asyncpg driver
 
 ### Architecture & Production
@@ -71,26 +71,30 @@ http://127.0.0.1:8000/docs
 
 ## Status & Current Progress:
 
-- Added notes CRUD routes: GET, POST, PATCH (instead of PUT, to align with convention) and DELETE
-- Protected all routes, and added valid status codes
-- Incremental integer ID replaced with UUID for better scalability
-- UUID alongside get_current_user() dependency, and object-level auth prevents BOLA
 - Project refactored into modular components
 - Integration tests for both routes and authentication implemented for all routes, testing both happy paths, and edge cases, such as unauthenticated user, unauthorized users.
+- Routes are now asynchronous, using aiosqlite initially
+- Hashing logic offloaded to run in thread pool to prevent CPU blocking
+- Tests are functioning after refactor to async, with test coverage of 96%
+- Async/aiosqlite implemented
 
 - Version tested and functioning
-- Async/PostgreSQL migration planned
+- Note encryption planned
+- PostgreSQL planned
 
 ## Design Decisions & Tradeoffs
 
 - SQLite transition to PostgreSQL: PostgreSQL allows for high concurrency and horizontal scaling. SQLite is used initially due to its ease of use, easy testing and simple configuration.
 - Write Concurrency Limits: Testing in the `notes-routes` PR confirms SQLite locks under concurrent `POST` requests. By design, SQLite serialises writes while allowing parallel reads. PostgreSQL is architected and preferred in my use case for high-concurrency write access.
 
+- AioSQLite vs PostgreSQL: While `aiosqlite` uses a background thread pool to enable asynchronous code, it is still bound by SQLite's write-lock limitation under heacy load. PostgreSQL supports asynchronous drivers and allows concurrent reads and writes without blocking.
 - Username Case-Sensitivity: Usernames are currently case-sensitive at the database level. A follow-up step i.e. lowercasing on registration and login, is planned to prevent duplicate accounts and authentication friction between equivalent usernames such as `admin1` and `Admin1`.
 
 - Argon2 hashing vs. `bcrypt` with `passlib`: Although initially considered, bcrypt falls short of argon2 hashing against modern GPU brute force attacks. Argon2 is the winner of the PHC and is recommended by the OWASP, due to being memory-hard.
 
 ### Load Testing & Performance
+
+#### Synchronous SQLite
 
 - Concurrency Load Testing: Simulated concurrent traffic, via Locust, indicated two distinct bottlenecks. Initially tested under a load of around 200 concurrent users. After reducing the load, the constraint shifted from the storage layer to application resource limits, resulting in SQLAlchemy `TimeoutError` exceptions, after a brief period.
 

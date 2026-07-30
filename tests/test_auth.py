@@ -2,10 +2,12 @@ import pytest
 from freezegun import freeze_time
 from conftest import get_test_database
 from models import User
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Registration tests
-def test_register(client):
-    response = client.post(
+async def test_register(client):
+    response = await client.post(
         url="/users/register",
         json={
             "username": "testuser1",
@@ -19,8 +21,8 @@ def test_register(client):
 
     assert response.status_code == 201
 
-def test_duplicate_username(client):
-    client.post(
+async def test_duplicate_username(client):
+    await client.post(
         url="/users/register",
         json={
             "username": "testuserA",
@@ -32,7 +34,7 @@ def test_duplicate_username(client):
         }
     )
 
-    response = client.post(
+    response = await client.post(
         url="/users/register",
         json={
             "username": "testuserA",
@@ -46,8 +48,8 @@ def test_duplicate_username(client):
 
     assert response.status_code == 409
 
-def test_register_missing_username(client):
-    response = client.post(
+async def test_register_missing_username(client):
+    response = await client.post(
         url="/users/register",
         json={
             "password": "1!TestPassword",
@@ -60,8 +62,8 @@ def test_register_missing_username(client):
 
     assert response.status_code == 422
 
-def test_register_missing_name_fields(client):
-    response = client.post(
+async def test_register_missing_name_fields(client):
+    response = await client.post(
         url="/users/register",
         json={
             "username": "testuser1",
@@ -79,8 +81,8 @@ def test_register_missing_name_fields(client):
     {"username": "valid_user", "password": "valid_Password1!", "name": {"fname": "John", "sname": True}},
     
 ])
-def test_register_incorrect_data_types(client, login_payload):
-    response = client.post(
+async def test_register_incorrect_data_types(client, login_payload):
+    response = await client.post(
         url="/users/register",
         json=login_payload
     )
@@ -92,8 +94,8 @@ def test_register_incorrect_data_types(client, login_payload):
     ("", "at least 3"),
     ("fo", "at least 3")
 ])
-def test_register_username_validation(client, username, expected_message):
-    response = client.post(
+async def test_register_username_validation(client, username, expected_message):
+    response = await client.post(
         url="/users/register",
         json={
             "username": username,
@@ -117,8 +119,8 @@ def test_register_username_validation(client, username, expected_message):
     "A" * 10000,
     "%s%s%s%s"
 ])
-def test_malicious_registration(client, malicious_input):
-    response = client.post(
+async def test_malicious_registration(client, malicious_input):
+    response = await client.post(
         url="/users/register",
         json={
             "username": malicious_input,
@@ -142,8 +144,8 @@ def test_malicious_registration(client, malicious_input):
     ("missingSPECIALchar1", "must contain at least one special character"),
     ("testW1TH sp@ce", "must not contain spaces")
 ])
-def test_password_validation(client, password, expected_message):
-    response = client.post(
+async def test_password_validation(client, password, expected_message):
+    response = await client.post(
         url="/users/register",
         json={
             "username": "testuser2",
@@ -160,8 +162,8 @@ def test_password_validation(client, password, expected_message):
 
 # Login tests
 
-def test_login(client):
-    client.post(
+async def test_login(client):
+    await client.post(
         url="/users/register",
         json={
             "username": "testuser2",
@@ -173,7 +175,7 @@ def test_login(client):
         },
     )
 
-    response = client.post(
+    response = await client.post(
         url="/users/login",
         data={
             "username": "testuser2",
@@ -189,8 +191,8 @@ def test_login(client):
     ("correctuser", "falsepassword"),
     ("falseuser", "1!CorrectPassword"),
 ])
-def test_login_validation(client, username, password):
-    client.post(
+async def test_login_validation(client, username, password):
+    await client.post(
         url="/users/register",
         json={
             "username": "correctuser",
@@ -202,7 +204,7 @@ def test_login_validation(client, username, password):
         },
     )
 
-    response = client.post(
+    response = await client.post(
         url="/users/login",
         data={
             "username": username,
@@ -218,8 +220,8 @@ def test_login_validation(client, username, password):
     ("", "1!CorrectPassword"),
     ("correctuser", "")
 ])
-def test_empty_login_fields(client, username, password):
-    client.post(
+async def test_empty_login_fields(client, username, password):
+    await client.post(
     url="/users/register",
         json={
             "username": "correctuser",
@@ -231,7 +233,7 @@ def test_empty_login_fields(client, username, password):
     },
 )
 
-    response = client.post(
+    response = await client.post(
         url="/users/login",
         data={
             "username": username,
@@ -242,8 +244,8 @@ def test_empty_login_fields(client, username, password):
     assert response.status_code == 422
 
 
-def test_login_json(client):
-    client.post(
+async def test_login_json(client):
+    await client.post(
         url="/users/register",
         json={
             "username": "jsonuser",
@@ -255,7 +257,7 @@ def test_login_json(client):
         },
     )
 
-    response = client.post(
+    response = await client.post(
         url="/users/login",
         json={
             "username": "jsonuser",
@@ -273,8 +275,8 @@ def test_login_json(client):
     "' UNION SELECT * FROM users --",
     "%s%s%s%s"
 ])
-def test_malicious_login(client, malicious_input):
-    response = client.post(
+async def test_malicious_login(client, malicious_input):
+    response = await client.post(
         url="/users/login",
         data={
             "username": malicious_input,
@@ -288,7 +290,7 @@ def test_malicious_login(client, malicious_input):
 # JWT tests
 
 @pytest.fixture()
-def registered_user(client):
+async def registered_user(client):
     user_data = { 
         "username": "testuser0",
         "password": "Valid1!Password",
@@ -298,26 +300,26 @@ def registered_user(client):
         }
     }
 
-    client.post(url="/users/register",json=user_data)
+    await client.post(url="/users/register",json=user_data)
 
     return user_data
 
-def test_valid_token(client, registered_user):
-    response = client.post("/users/login", data={
+async def test_valid_token(client, registered_user):
+    response = await client.post("/users/login", data={
             "username": registered_user["username"],
             "password": registered_user["password"]
         })
     token = response.json()["access_token"]
 
-    response = client.get("/users/me", headers={
+    response = await client.get("/users/me", headers={
             "Authorization": f"Bearer {token}"
         })
     
     assert response.status_code == 200
 
-def test_expired_token(client, registered_user):
+async def test_expired_token(client, registered_user):
     with freeze_time("2026-01-01 00:00:00"):
-        response = client.post("/users/login", data={
+        response = await client.post("/users/login", data={
             "username": registered_user["username"],
             "password": registered_user["password"]
         })
@@ -325,34 +327,34 @@ def test_expired_token(client, registered_user):
 
     # Token currently expires after 15 minutes. freeze_time allows manual time manipulation
     with freeze_time("2026-01-01 00:20:00"):
-        response = client.get("/users/me", headers={
+        response = await client.get("/users/me", headers={
             "Authorization": f"Bearer {token}"
         })
 
-        assert response.status_code == 401
+    assert response.status_code == 401
 
-def test_missing_token(client):
-    response = client.get("/users/me")
+async def test_missing_token(client):
+    response = await client.get("/users/me")
     assert response.status_code == 401
 
 @pytest.mark.parametrize("bad_token, description", [
     ("completelyinvalidtoken", "malformed"),
-    ("abc.def.ghi", "bad structure"),
+    ("abc.async def.ghi", "bad structure"),
     ("Bearer falseprefix", "bad prefix"),
     ("kbsajhbyubr8ag38uyy.afbhkjrey83.incorrectsignature", "tampered signature"),
 ])
-def test_invalid_tokens(client, registered_user, bad_token, description):
-    response = client.get("/users/me", headers={
+async def test_invalid_tokens(client, registered_user, bad_token, description):
+    response = await client.get("/users/me", headers={
         "Authorization": f"Bearer {bad_token}"
     })
     assert response.status_code == 401, description
     
 # Hashing tests
 
-def test_password_hashed_in_db(client):
+async def test_password_hashed_in_db(client):
     password = "1!TestPassword"
     username = "testuser"
-    client.post(
+    await client.post(
         url="/users/register",
         json={
             "username": username,
@@ -364,9 +366,10 @@ def test_password_hashed_in_db(client):
         },
     )
 
-    db = next(get_test_database())
+    db : AsyncSession = await anext(get_test_database())
 
-    current_user = db.query(User).filter(User.username == username).first()
+    result = await db.execute(select(User).where(User.username == username))
+    current_user = result.scalar_one_or_none()
 
     assert current_user is not None
     assert current_user.password != password

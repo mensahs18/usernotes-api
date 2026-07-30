@@ -1,24 +1,27 @@
 from fastapi import Depends, HTTPException, APIRouter
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from models import User, Note
 from dependencies import get_current_user, get_database
 from schemas import NoteUpdate, NoteCreate, NoteResponse
 
 router = APIRouter()
 
-def get_note_or_404(note_id, user, db):
-    existing_note = db.query(Note).filter(Note.id == note_id).first()
+async def get_note_or_404(note_id: str, user: User, db: AsyncSession):
+
+    result = await db.execute(select(Note).where(Note.id == note_id, Note.user_id == user.id))
+    existing_note = result.scalar_one_or_none()
+    
 
     if not existing_note:
         raise HTTPException(404, detail="Note not Found.")
     
-    if not existing_note.user_id == user.id:
-        raise HTTPException(404, detail="Note not Found.")
+    
     return existing_note
 
 
 @router.post("/notes", response_model=NoteResponse, status_code=201)
-def create_note(note: NoteCreate, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
+async def create_note(note: NoteCreate, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_database)):
     new_note = Note(
         user_id=user.id,
         title=note.title,
@@ -26,47 +29,45 @@ def create_note(note: NoteCreate, user: User = Depends(get_current_user), db: Se
     )
 
     db.add(new_note)
-    db.commit()
-    db.refresh(new_note)
+    await db.commit()
+    await db.refresh(new_note)
 
     return new_note
 
 @router.get("/notes", response_model=list[NoteResponse], status_code=200)
-def read_notes(user: User = Depends(get_current_user), db: Session = Depends(get_database)):
-    return db.query(Note).filter(Note.user_id == user.id).all()
+async def read_notes(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_database)):
+    result = await db.execute(select(Note).where(Note.user_id == user.id))
+    notes = result.scalars().all()
+
+    return notes
 
 @router.get("/notes/{note_id}", response_model=NoteResponse, status_code=200)
-def read_one_note(note_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
-
-    existing_note = get_note_or_404(note_id, user, db)
-    
-    return existing_note
+async def read_one_note(note_id: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_database)):
+    return await get_note_or_404(note_id, user, db)
 
 @router.patch("/notes/{note_id}", response_model=NoteResponse, status_code=200)
-def update_note(note_id: str, updated_note: NoteUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
+async def update_note(note_id: str, updated_note: NoteUpdate, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_database)):
     
-    existing_note = get_note_or_404(note_id, user, db)
+    existing_note = await get_note_or_404(note_id, user, db)
 
-    if updated_note.title is None and updated_note.content is None:
+    update_data = updated_note.model_dump(exclude_unset=True)
+    # Only update what user entered
+    if not update_data:
         raise HTTPException(400, detail="No fields provided to update.")
     
-    if updated_note.title is not None:
-        existing_note.title = updated_note.title
-    if updated_note.content is not None:
-        existing_note.content = updated_note.content
+    if "title" in update_data:
+        existing_note.title = update_data["title"]
+    if "content" in update_data:
+        existing_note.content = update_data["content"]
 
-    db.commit()
-    db.refresh(existing_note)
+    await db.commit()
+    await db.refresh(existing_note)
 
     return existing_note
 
 @router.delete("/notes/{note_id}", status_code=204)
-def delete_note(note_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_database)):
-    existing_note = get_note_or_404(note_id, user, db)
-    
-    title = existing_note.title
-    
-    db.delete(existing_note)
-    db.commit()
-
-    return { "message": f"Note '{title}' successfully deleted"}
+async def delete_note(note_id: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_database)):
+    existing_note = await get_note_or_404(note_id, user, db)
+        
+    await db.delete(existing_note)
+    await db.commit()
