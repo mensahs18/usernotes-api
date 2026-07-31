@@ -1,5 +1,7 @@
 # Notes API
 
+[![Tests](https://github.com/mensahs18/usernotes-api/actions/workflows/main.yml/badge.svg)](https://github.com/mensahs18/usernotes-api/actions/workflows/main.yml)
+
 A secure asynchronous REST API backend built with FastAPI and SQLAlchemy, implementing JWT authentication and Argon2 hashing. Users can register, authenticate themselves, and manage personal notes via protected endpoints. Designed with production and security principles in mind. Future plans involve migrating database to PostgreSQL for improved concurrency and horizontal scaling. Later, aims to include Redis and Docker.
 
 ## Features
@@ -21,7 +23,7 @@ A secure asynchronous REST API backend built with FastAPI and SQLAlchemy, implem
 
 ### Security & Response
 - [X] Ownership validation on note routes
-- [ ] JWT expiration handling
+- [X] JWT expiration handling
 - [ ] Token refreshing
 - [ ] Rate limiting (Redis) against DoS
 
@@ -55,7 +57,7 @@ A secure asynchronous REST API backend built with FastAPI and SQLAlchemy, implem
 
 Create a `.env` file in the root directory, containing a *SECRET_KEY*.
 
-SECRET_KEY = 'secret_key_here'
+`SECRET_KEY = 'secret_key_here'`
 
 Install required dependencies:
 
@@ -63,7 +65,7 @@ Install required dependencies:
 
 Run server:
 
-uvicorn main:app --reload
+`uvicorn main:app --reload`
 
 Open browser, and enter Swagger UI at:
 
@@ -72,11 +74,12 @@ http://127.0.0.1:8000/docs
 ## Status & Current Progress:
 
 - Project refactored into modular components
-- Integration tests for both routes and authentication implemented for all routes, testing both happy paths, and edge cases, such as unauthenticated user, unauthorized users.
+- Integration tests for both routes and authentication implemented for all routes, testing both happy paths and edge cases, such as unauthenticated and unauthorized users.
 - Routes are now asynchronous, using aiosqlite initially
 - Hashing logic offloaded to run in thread pool to prevent CPU blocking
 - Tests are functioning after refactor to async, with test coverage of 96%
 - Async/aiosqlite implemented
+- Usernames normalised in database and password validation entropy improved
 
 - Version tested and functioning
 - Note encryption planned
@@ -85,12 +88,14 @@ http://127.0.0.1:8000/docs
 ## Design Decisions & Tradeoffs
 
 - SQLite transition to PostgreSQL: PostgreSQL allows for high concurrency and horizontal scaling. SQLite is used initially due to its ease of use, easy testing and simple configuration.
-- Write Concurrency Limits: Testing in the `notes-routes` PR confirms SQLite locks under concurrent `POST` requests. By design, SQLite serialises writes while allowing parallel reads. PostgreSQL is architected and preferred in my use case for high-concurrency write access.
+- Write Concurrency Limits: Testing in the `notes-routes` PR confirms SQLite locks under concurrent `POST` requests. By design, SQLite serialises writes while allowing parallel reads. PostgreSQL is architected and preferred in my inital implementation for high-concurrency write access.
+- AioSQLite vs PostgreSQL: While `aiosqlite` uses a background thread pool to enable asynchronous code, it is still bound by SQLite's write-lock limitation under heavy load. PostgreSQL supports asynchronous drivers and allows concurrent reads and writes without blocking.
 
-- AioSQLite vs PostgreSQL: While `aiosqlite` uses a background thread pool to enable asynchronous code, it is still bound by SQLite's write-lock limitation under heacy load. PostgreSQL supports asynchronous drivers and allows concurrent reads and writes without blocking.
-- Username Case-Sensitivity: Usernames are currently case-sensitive at the database level. A follow-up step i.e. lowercasing on registration and login, is planned to prevent duplicate accounts and authentication friction between equivalent usernames such as `admin1` and `Admin1`.
+- Username Case-Sensitivity: Usernames were initially case-sensitive at the database level. A follow-up step i.e. lowercasing on registration and login, has been executed to prevent duplicate accounts and authentication friction between equivalent usernames such as `admin1` and `Admin1`.
 
 - Argon2 hashing vs. `bcrypt` with `passlib`: Although initially considered, bcrypt falls short of argon2 hashing against modern GPU brute force attacks. Argon2 is the winner of the PHC and is recommended by the OWASP, due to being memory-hard.
+- Maximum Password Length vs. CPU Exhaustion (DoS): Allowing 128 characters in password introduces a potential Denial of Service (DoS) vector, as hashing large inputs with Argon2 is computationally expensive. Accepted as a trade-off to prioritise user password flexibility. In a future PR, application-level CPU exhaustion DoS attacks on authentication will be mitigated via Redis rate-limiting, over shortening user inputs. Distributed DoS (DDos) mitigation would require infrastructure level solutions, which are outside of the scope of this project.
+
 
 ### Load Testing & Performance
 
