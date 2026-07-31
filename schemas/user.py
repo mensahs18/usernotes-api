@@ -39,6 +39,8 @@ class UserCreate(BaseModel):
             raise ValueError("Password must be at least 8 characters long.")
         if len(value) > 128:
             raise ValueError("Password cannot be longer than 128 characters.")
+        if re.search(" ", value):
+            raise ValueError("Password must not contain spaces.")
 
         #Composition rules over length, design choice
         if not re.search(r'[0-9]', value):
@@ -47,10 +49,9 @@ class UserCreate(BaseModel):
             raise ValueError("Password must contain at least one uppercase letter.")
         if not re.search(r'[a-z]', value):
             raise ValueError("Password must contain at least one lowercase letter.")
-        if not re.search(r'[ !"#$%&\'()*+,-./:;<=>?@\[\]^_`{|}~]', value):
+        if not re.search(r'[^\w\s]', value):
             raise ValueError("Password must contain at least one special character.")
-        if re.search(" ", value):
-            raise ValueError("Password must not contain spaces.")
+
         
         return value
 
