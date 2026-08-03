@@ -4,6 +4,8 @@ import os
 
 load_dotenv()
 hex_key = os.getenv("ENCRYPT_KEY")
+if not hex_key:
+    raise RuntimeError("'ENCRYPT_KEY' environment variable is missing.")
 ENC_KEY = bytes.fromhex(hex_key)
 
 def encrypt(text: str) -> str:
