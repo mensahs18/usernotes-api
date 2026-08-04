@@ -104,3 +104,12 @@ http://127.0.0.1:8000/docs
 - Concurrency Load Testing: Simulated concurrent traffic, via Locust, indicated two distinct bottlenecks. Initially tested under a load of around 200 concurrent users. After reducing the load, the constraint shifted from the storage layer to application resource limits, resulting in SQLAlchemy `TimeoutError` exceptions, after a brief period.
 
 - Connection Pool Exhaustion: The metrics reflected this resource starvation. While read operations remained stable (though large byte-wise, due to concurrent posting), `POST /notes` latencies spiked to a 2000ms 99th percentile. Likely a result of connection starvation, migrating to PostgreSQL and use of an async driver should allow concurrent writes without these bottlenecks.
+
+#### Encryption and threadpools
+
+- As encryption is CPU-bound, three strategies were load-tested at 100 concurrent users (to prevent write-locking of SQLite):
+  - No encryption: 39.8 ms median
+  - Synchronous AES‑256‑GCM: 39.9 ms median
+  - Threadpool AES‑256‑GCM: 45.0 ms median
+
+- At this scale, AES-256-GCM encryption introduces minimal overhead, whereas offloading it to a threadpool introduced ~5 ms median overhead (and a worse p95 latency), showing the context-switching when running it in a threadpool exceeded the actual encryption process. While both AES-256-GCM and Argon2 are implemented in C, AES encryption is hardware accelerated, whereas Argon2 hashing is deliberately slow. Following this, `run_in_threadpool` stripped from all encrypt/decrypt function calls.
