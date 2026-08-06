@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SECRET_KEY: secret-key-test
+      # This is not a real secret key: For CI testing only
+      ENCRYPT_KEY: 77588f4eccddd7f57f2514e64ef2873e169445adae7de09c2b872404abbbe5cb
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
