@@ -1,6 +1,7 @@
-from fastapi import Depends, HTTPException, APIRouter
+from fastapi import Depends, HTTPException, APIRouter, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from typing import Annotated
 from models import User, Note
 from dependencies import get_current_user, get_database
 from schemas import NoteUpdate, NoteCreate, NoteResponse
@@ -44,8 +45,13 @@ async def create_note(note: NoteCreate, user: User = Depends(get_current_user), 
     )
 
 @router.get("/notes", response_model=list[NoteResponse], status_code=200)
-async def read_notes(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_database)):
-    result = await db.execute(select(Note).where(Note.user_id == user.id))
+async def read_notes(
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    user: User = Depends(get_current_user), 
+    db: AsyncSession = Depends(get_database)):
+
+    result = await db.execute(select(Note).where(Note.user_id == user.id).offset(offset).limit(limit))
     notes = result.scalars().all()
 
     return [
