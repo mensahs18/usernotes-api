@@ -54,8 +54,9 @@ async def test_create_note_successful(authed_client):
 @pytest.mark.parametrize("title, content", [
     ("", "titleless content"),
     ("title with no content", ""),
+    ("a" * 201, "title above 200 characters"),
 ])
-async def test_create_note_missing_fields(authed_client, title, content):
+async def test_create_note_validation(authed_client, title, content):
 
     response = await authed_client.post(
         "/notes",
@@ -64,6 +65,17 @@ async def test_create_note_missing_fields(authed_client, title, content):
             "content": content
         })
 
+
+    assert response.status_code == 422
+
+async def test_create_note_content_too_long(authed_client):
+
+    response = await authed_client.post(
+        "/notes",
+        json={
+            "title": "content exceeding 100,000 characters",
+            "content": "a" * 100001
+        })
 
     assert response.status_code == 422
 
