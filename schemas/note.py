@@ -19,3 +19,15 @@ class NoteResponse(BaseModel):
     content: str
     created_at: datetime
     updated_at: datetime
+
+class NotePreviewResponse(BaseModel):
+    id: str
+    title: str
+    created_at: datetime
+    updated_at: datetime
+
+class PaginatedNoteResponse(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    notes: list[NotePreviewResponse]

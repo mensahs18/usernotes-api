@@ -1,10 +1,10 @@
 from fastapi import Depends, HTTPException, APIRouter, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from typing import Annotated
 from models import User, Note
 from dependencies import get_current_user, get_database
-from schemas import NoteUpdate, NoteCreate, NoteResponse
+from schemas import NoteUpdate, NoteCreate, NoteResponse, PaginatedNoteResponse, NotePreviewResponse
 from auth import encrypt, decrypt
 
 router = APIRouter()
@@ -44,26 +44,31 @@ async def create_note(note: NoteCreate, user: User = Depends(get_current_user), 
         updated_at=new_note.updated_at
     )
 
-@router.get("/notes", response_model=list[NoteResponse], status_code=200)
+@router.get("/notes", response_model=PaginatedNoteResponse, status_code=200)
 async def read_notes(
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     user: User = Depends(get_current_user), 
     db: AsyncSession = Depends(get_database)):
 
+    count_result = await db.execute(select(func.count()).select_from(Note).where(Note.user_id == user.id))
+    count = count_result.scalar_one()
+
     result = await db.execute(select(Note).where(Note.user_id == user.id).offset(offset).limit(limit))
     notes = result.scalars().all()
 
-    return [
-        NoteResponse(
+    return PaginatedNoteResponse(
+        total=count,
+        limit=limit,
+        offset=offset,
+        notes=[
+        NotePreviewResponse(
             id=note.id,
             title=decrypt(note.title),
-            content=decrypt(note.content),
             created_at=note.created_at,
             updated_at=note.updated_at
-        )
-        for note in notes
-    ]
+        ) for note in notes ]
+    )
 
 @router.get("/notes/{note_id}", response_model=NoteResponse, status_code=200)
 async def read_one_note(note_id: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_database)):
