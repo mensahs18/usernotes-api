@@ -6,12 +6,12 @@ from typing import Optional
 strippedStr = Annotated[str, StringConstraints(strip_whitespace=True)]
 
 class NoteCreate(BaseModel):
-    title: strippedStr = Field(min_length=1)
-    content: strippedStr = Field(min_length=1)
+    title: strippedStr = Field(min_length=1, max_length=200)
+    content: strippedStr = Field(min_length=1, max_length=100000)
 
 class NoteUpdate(BaseModel):
-    title: Optional[strippedStr] = Field(default=None, min_length=1)
-    content: Optional[strippedStr] = Field(default=None, min_length=1)
+    title: Optional[strippedStr] = Field(default=None, min_length=1, max_length=200)
+    content: Optional[strippedStr] = Field(default=None, min_length=1, max_length=100000)
 
 class NoteResponse(BaseModel):
     id: str
