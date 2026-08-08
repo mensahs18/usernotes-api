@@ -1,6 +1,6 @@
 from fastapi import Depends, HTTPException, APIRouter, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, asc
 from typing import Annotated
 from models import User, Note
 from dependencies import get_current_user, get_database
@@ -54,7 +54,7 @@ async def read_notes(
     count_result = await db.execute(select(func.count()).select_from(Note).where(Note.user_id == user.id))
     count = count_result.scalar_one()
 
-    result = await db.execute(select(Note).where(Note.user_id == user.id).offset(offset).limit(limit))
+    result = await db.execute(select(Note).where(Note.user_id == user.id).order_by(asc(Note.created_at)).offset(offset).limit(limit))
     notes = result.scalars().all()
 
     return PaginatedNoteResponse(
