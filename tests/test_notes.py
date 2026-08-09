@@ -54,8 +54,9 @@ async def test_create_note_successful(authed_client):
 @pytest.mark.parametrize("title, content", [
     ("", "titleless content"),
     ("title with no content", ""),
+    ("a" * 201, "title above 200 characters"),
 ])
-async def test_create_note_missing_fields(authed_client, title, content):
+async def test_create_note_validation(authed_client, title, content):
 
     response = await authed_client.post(
         "/notes",
@@ -64,6 +65,17 @@ async def test_create_note_missing_fields(authed_client, title, content):
             "content": content
         })
 
+
+    assert response.status_code == 422
+
+async def test_create_note_content_too_long(authed_client):
+
+    response = await authed_client.post(
+        "/notes",
+        json={
+            "title": "content exceeding 100,000 characters",
+            "content": "a" * 100001
+        })
 
     assert response.status_code == 422
 
@@ -150,11 +162,18 @@ async def test_get_notes(authed_client):
 
     response = await authed_client.get("/notes")
 
-    assert len(response.json()) == 2
+    assert len(response.json()["notes"]) == 2
 
-    titles = [note["title"] for note in response.json()]
+    titles = [note["title"] for note in response.json()["notes"]]
     assert "Foo Note A" in titles
     assert "Foo Note B" in titles
+
+    assert response.json()["total"] == 2
+    assert response.json()["limit"] == 50
+    assert response.json()["offset"] == 0
+
+    for note in response.json()["notes"]:
+        assert "content" not in note, "Content should be stripped"
 
 async def test_get_notes_unauthenticated(client):
     response = await client.get("/notes")
@@ -177,11 +196,38 @@ async def test_get_notes_unauthorized_user(authed_client):
     )
 
     response = await authed_client.get("/notes")
-    titles = [note["title"] for note in response.json()]
+    titles = [note["title"] for note in response.json()["notes"]]
 
-    assert len(response.json()) == 1
+    assert len(response.json()["notes"]) == 1
     assert "User1's note" in titles
     assert "User0's note" not in titles
+
+async def test_get_notes_are_paginated(authed_client):
+    await authed_client.post("/notes", json={"title": "Note A", "content": "note's content"})
+    await authed_client.post("/notes", json={"title": "Note B", "content": "note's content"})
+    await authed_client.post("/notes", json={"title": "Note C", "content": "note's content"})
+
+    response = await authed_client.get("/notes?limit=2&offset=0")
+    assert response.status_code == 200
+    
+    page_1 = response.json()
+    assert page_1["total"] == 3
+    assert page_1["limit"] == 2
+    assert page_1["offset"] == 0
+    assert len(page_1["notes"]) == 2
+    assert page_1["notes"][0]["title"] == "Note A"
+    assert page_1["notes"][1]["title"] == "Note B"
+
+    response_2 = await authed_client.get("/notes?limit=2&offset=2")
+    assert response_2.status_code == 200
+
+    page_2 = response_2.json()
+    assert page_2["total"] == 3
+    assert page_2["limit"] == 2
+    assert page_2["offset"] == 2
+    assert len(page_2["notes"]) == 1
+    assert page_2["notes"][0]["title"] == "Note C"
+    
 
 async def test_update_note(authed_client):
     create_response = await authed_client.post(

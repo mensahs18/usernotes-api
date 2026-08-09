@@ -22,7 +22,7 @@ A secure asynchronous REST API backend built with FastAPI and SQLAlchemy, implem
 - [X] Update note (PATCH /notes/{id})
 - [X] Delete note (DELETE /notes/{id})
 - [X] Encrypt notes in database
-- [ ] Note pagination
+- [X] Note pagination
 
 ### Security & Response
 - [X] Ownership validation on note routes
