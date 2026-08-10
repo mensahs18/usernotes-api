@@ -1,0 +1,39 @@
+[project]
+name = "usernotes-api"
+version = "1.0.0"
+description = "A secure, asynchronous REST API backend built with FastAPI and SQLAlchemy, featuring JWT authentication and Argon2 password hashing."
+authors = [
+    {name = "smensa",email = "mensahl18@outlook.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi (>=0.141.1,<0.142.0)",
+    "uvicorn (>=0.52.1,<0.53.0)",
+    "sqlalchemy (>=2.0.51,<3.0.0)",
+    "aiosqlite (>=0.22.1,<0.23.0)",
+    "argon2-cffi (>=25.1.0,<26.0.0)",
+    "pyjwt (>=2.13.0,<3.0.0)",
+    "cryptography (>=50.0.0,<51.0.0)",
+    "pydantic (>=2.13.4,<3.0.0)",
+    "python-dotenv (>=1.2.2,<2.0.0)",
+    "python-multipart (>=0.0.32,<0.0.33)",
+    "uuid6 (>=2025.0.1,<2026.0.0)",
+    "typing-extensions (>=4.16.0,<5.0.0)"
+]
+
+[tool.poetry]
+package-mode = false
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.1.1,<10.0.0)",
+    "pytest-asyncio (>=1.4.0,<2.0.0)",
+    "pytest-cov (>=7.1.0,<8.0.0)",
+    "freezegun (>=1.5.5,<2.0.0)",
+    "httpx (>=0.28.1,<0.29.0)"
+]
