@@ -61,7 +61,7 @@ A secure asynchronous REST API backend built with FastAPI and SQLAlchemy, implem
 
 Create a `.env` file in the root directory:
 
-```python
+```env
 # .env file
 SECRET_KEY=secret_key_here
 ENCRYPT_KEY=your_32_byte_hex_key_here
@@ -69,15 +69,15 @@ ENCRYPT_KEY=your_32_byte_hex_key_here
 
 - `ENCRYPT_KEY` can be generated with the following terminal command:
 
-`python -c "import os; print(os.urandom(32).hex())"`
+`poetry run python -c "import os; print(os.urandom(32).hex())"`
 
 Install required dependencies:
 
-`pip install -r requirements.txt`
+`poetry install`
 
 Run server:
 
-`uvicorn main:app --reload`
+`poetry run uvicorn main:app --reload`
 
 Open browser, and enter Swagger UI at:
 
