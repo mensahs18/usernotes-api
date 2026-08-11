@@ -5,3 +5,4 @@ venv/
 .vscode/
 .coverage
 test.db
+notes.db
