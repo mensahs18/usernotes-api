@@ -2,21 +2,24 @@ from fastapi import HTTPException
 from schemas import TokenPayload
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
+from typing import Any
 import os
 import jwt
 
 load_dotenv()
-SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
+JWT_KEY = os.getenv("SECRET_KEY")
+if not JWT_KEY:
     raise RuntimeError("'SECRET_KEY' environment variable is missing.")
+
+SECRET_KEY: str = JWT_KEY
 ALGORITHM = "HS256"
 
-def create_access_token(user_id):
+def create_access_token(user_id: str) -> str:
     now = datetime.now(timezone.utc)
     expiry_time = now + timedelta(minutes=15)
 
     token_payload = TokenPayload(
-        sub=str(user_id),
+        sub=user_id,
         iat=int(now.timestamp()),
         exp=int(expiry_time.timestamp())
         )
@@ -25,7 +28,7 @@ def create_access_token(user_id):
 
     return encoded_jwt
 
-def verify_access_token(token):
+def verify_access_token(token: str) -> dict[str, Any]:
     try:
         decoded_jwt = jwt.decode(token, key=SECRET_KEY, algorithms=[ALGORITHM])
         return decoded_jwt 

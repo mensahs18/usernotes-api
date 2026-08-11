@@ -21,7 +21,7 @@ class UserCreate(BaseModel):
 
     @field_validator('username')
     @classmethod
-    def validate_username(cls, value):
+    def validate_username(cls, value: str) -> str:
         if len(value) < 3:
             raise ValueError("Username must be at least 3 characters long.")
         if len(value) > 32:
@@ -34,7 +34,7 @@ class UserCreate(BaseModel):
 
     @field_validator('password')
     @classmethod
-    def validate_password(cls, value):
+    def validate_password(cls, value: str) -> str:
         if len(value) < 8:
             raise ValueError("Password must be at least 8 characters long.")
         if len(value) > 128:

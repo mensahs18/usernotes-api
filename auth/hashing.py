@@ -8,7 +8,7 @@ from fastapi.concurrency import run_in_threadpool
 
 pwHasher = PasswordHasher()
 
-async def authenticate_user(username: str, password: str, db: AsyncSession):
+async def authenticate_user(username: str, password: str, db: AsyncSession) -> User:
     clean_username = username.strip().lower()
 
     result = await db.execute(select(User).where(User.username == clean_username))
@@ -24,6 +24,6 @@ async def authenticate_user(username: str, password: str, db: AsyncSession):
     
     return existing_user
 
-async def hash_password(password):
+async def hash_password(password: str) -> str:
     hashed_pw = await run_in_threadpool(pwHasher.hash, password)
     return hashed_pw
