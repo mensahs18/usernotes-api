@@ -9,7 +9,7 @@ from auth import encrypt, decrypt
 
 router = APIRouter()
 
-async def get_note_or_404(note_id: str, user: User, db: AsyncSession):
+async def get_note_or_404(note_id: str, user: User, db: AsyncSession) -> Note:
 
     result = await db.execute(select(Note).where(Note.id == note_id, Note.user_id == user.id))
     existing_note = result.scalar_one_or_none()
@@ -21,7 +21,7 @@ async def get_note_or_404(note_id: str, user: User, db: AsyncSession):
 
 
 @router.post("/notes", response_model=NoteResponse, status_code=201)
-async def create_note(note: NoteCreate, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_database)):
+async def create_note(note: NoteCreate, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_database)) -> NoteResponse:
 
     enc_title = encrypt(note.title)
     enc_content = encrypt(note.content)
@@ -49,7 +49,7 @@ async def read_notes(
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     user: User = Depends(get_current_user), 
-    db: AsyncSession = Depends(get_database)):
+    db: AsyncSession = Depends(get_database)) -> PaginatedNoteResponse:
 
     count_result = await db.execute(select(func.count()).select_from(Note).where(Note.user_id == user.id))
     count = count_result.scalar_one()
@@ -71,7 +71,7 @@ async def read_notes(
     )
 
 @router.get("/notes/{note_id}", response_model=NoteResponse, status_code=200)
-async def read_one_note(note_id: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_database)):
+async def read_one_note(note_id: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_database)) -> NoteResponse:
     db_note = await get_note_or_404(note_id, user, db)
 
     return NoteResponse(
@@ -83,7 +83,7 @@ async def read_one_note(note_id: str, user: User = Depends(get_current_user), db
     )
 
 @router.patch("/notes/{note_id}", response_model=NoteResponse, status_code=200)
-async def update_note(note_id: str, updated_note: NoteUpdate, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_database)):
+async def update_note(note_id: str, updated_note: NoteUpdate, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_database)) -> NoteResponse:
     
     existing_note = await get_note_or_404(note_id, user, db)
 
@@ -109,7 +109,7 @@ async def update_note(note_id: str, updated_note: NoteUpdate, user: User = Depen
     )
 
 @router.delete("/notes/{note_id}", status_code=204)
-async def delete_note(note_id: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_database)):
+async def delete_note(note_id: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_database)) -> None:
     existing_note = await get_note_or_404(note_id, user, db)
         
     await db.delete(existing_note)

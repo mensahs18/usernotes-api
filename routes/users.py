@@ -5,13 +5,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from models import User
 from dependencies import get_current_user, get_database
-from schemas import UserCreate, UserResponse, TokenResponse
+from schemas import UserCreate, UserResponse, TokenResponse, Name
 from auth import hash_password, authenticate_user, create_access_token
 
 router = APIRouter()
 
 @router.post("/register", response_model=UserResponse, status_code=201)
-async def register(user: UserCreate, db: AsyncSession = Depends(get_database)):
+async def register(user: UserCreate, db: AsyncSession = Depends(get_database)) -> UserResponse:
     hashed_password = await hash_password(user.password)
 
     new_user = User(
@@ -32,14 +32,14 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_database)):
     return UserResponse(
         id=new_user.id,
         username=new_user.username,
-        name = {
-            "fname": new_user.fname,
-            "sname": new_user.sname
-        }
+        name = Name(
+            fname=new_user.fname,
+            sname=new_user.sname
+        )
     )
 
 @router.post("/login", response_model=TokenResponse, status_code=200)
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_database)):
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_database)) -> TokenResponse:
     current_user = await authenticate_user(form_data.username, form_data.password, db)
     token = create_access_token(current_user.id)
     
@@ -49,12 +49,12 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
     )
 
 @router.get("/me", response_model=UserResponse, status_code=200)
-async def read_users_me(user: User = Depends(get_current_user)):
+async def read_users_me(user: User = Depends(get_current_user)) -> UserResponse:
     return UserResponse(
         id=user.id,
         username=user.username,
-        name= {
-            "fname": user.fname,
-            "sname": user.sname
-        }
+        name= Name(
+            fname=user.fname,
+            sname=user.sname
+        )
     )

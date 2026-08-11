@@ -53,6 +53,27 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 
+[tool.mypy]
+explicit_package_bases = true
+check_untyped_defs = true
+local_partial_types = true
+strict_optional = true
+ignore_missing_imports = true 
+warn_redundant_casts = true
+warn_unused_ignores = true
+extra_checks = true
+disallow_untyped_defs = true
+disallow_untyped_calls = true
+disallow_incomplete_defs = true
+implicit_reexport = true
+warn_return_any = true
+disallow_subclassing_any = true
+disallow_untyped_decorators = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
 [tool.coverage.run]
 omit = ["tests/*"]
 concurrency = ["greenlet"]

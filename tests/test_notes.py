@@ -1,4 +1,5 @@
 import pytest
+from httpx import AsyncClient
 
 @pytest.fixture
 async def authed_client(client):
@@ -6,7 +7,7 @@ async def authed_client(client):
 
     return client
 
-async def create_and_login_user(client, username, password="ValidPassword1!"):
+async def create_and_login_user(client: AsyncClient, username: str, password: str = "ValidPassword1!") -> AsyncClient:
     await client.post(
         "/users/register",
         json={
