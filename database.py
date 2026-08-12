@@ -7,6 +7,6 @@ engine = create_async_engine(DB_URL)
 
 LocalSession = async_sessionmaker(bind=engine)
 
+
 class Base(DeclarativeBase):
     pass
-
