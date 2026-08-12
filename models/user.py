@@ -8,7 +8,9 @@ from database import Base
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid7()))
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid7())
+    )
     username: Mapped[str] = mapped_column(unique=True)
     fname: Mapped[str] = mapped_column()
     sname: Mapped[str] = mapped_column()

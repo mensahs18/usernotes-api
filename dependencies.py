@@ -11,12 +11,15 @@ from models import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/login")
 
+
 async def get_database() -> AsyncGenerator[AsyncSession]:
     async with LocalSession() as db:
         yield db
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_database)) -> User:
+async def get_current_user(
+    token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_database)
+) -> User:
 
     decoded_data = verify_access_token(token)
 

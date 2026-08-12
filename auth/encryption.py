@@ -9,6 +9,7 @@ if not hex_key:
     raise RuntimeError("'ENCRYPT_KEY' environment variable is missing.")
 ENC_KEY = bytes.fromhex(hex_key)
 
+
 def encrypt(text: str) -> str:
 
     aesgcm = AESGCM(ENC_KEY)
@@ -16,6 +17,7 @@ def encrypt(text: str) -> str:
     cipher = aesgcm.encrypt(nonce=nonce, data=text.encode(), associated_data=None)
 
     return (nonce + cipher).hex()
+
 
 def decrypt(encrypted_hex: str) -> str:
     encrypted = bytes.fromhex(encrypted_hex)

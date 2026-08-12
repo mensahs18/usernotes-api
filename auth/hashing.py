@@ -9,6 +9,7 @@ from models import User
 
 pwHasher = PasswordHasher()
 
+
 async def authenticate_user(username: str, password: str, db: AsyncSession) -> User:
     clean_username = username.strip().lower()
 
@@ -24,6 +25,7 @@ async def authenticate_user(username: str, password: str, db: AsyncSession) -> U
         raise HTTPException(401, "Invalid credentials.") from None
 
     return existing_user
+
 
 async def hash_password(password: str) -> str:
     hashed_pw = await run_in_threadpool(pwHasher.hash, password)
