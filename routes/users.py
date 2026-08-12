@@ -25,9 +25,9 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_database)) -
         db.add(new_user)
         await db.commit()
         await db.refresh(new_user)
-    except IntegrityError: #Race condition has caused repeat, db unique=true, raises IntegrityError
+    except IntegrityError as error: #Race condition has caused repeat, db unique=true, raises IntegrityError
         await db.rollback()
-        raise HTTPException(409, detail="Username is already taken")
+        raise HTTPException(409, detail="Username is already taken") from error
 
     return UserResponse(
         id=new_user.id,

@@ -20,7 +20,7 @@ async def authenticate_user(username: str, password: str, db: AsyncSession) -> U
     try:
         await run_in_threadpool(pwHasher.verify, existing_user.password, password)
     except VerificationError:
-        raise HTTPException(401, "Invalid credentials.")
+        raise HTTPException(401, "Invalid credentials.") from None
     
     return existing_user
 
