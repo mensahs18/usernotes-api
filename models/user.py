@@ -1,7 +1,8 @@
-from database import Base
-from uuid6 import uuid7
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
+from uuid6 import uuid7
+
+from database import Base
 
 
 class User(Base):
@@ -15,9 +16,8 @@ class User(Base):
 
     def __repr__(self) -> str:
         return (
-            f"User(id={self.id!r}, " 
+            f"User(id={self.id!r}, "
             f"username={self.username!r}, "
             f"firstname={self.fname!r}, "
             f"surname={self.sname!r}"
         )
-    

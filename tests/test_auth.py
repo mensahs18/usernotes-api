@@ -1,9 +1,11 @@
 import pytest
-from freezegun import freeze_time
 from conftest import get_test_database
-from models import User
+from freezegun import freeze_time
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models import User
+
 
 # Registration tests
 async def test_register(client):
@@ -85,7 +87,7 @@ async def test_register_missing_name_fields(client):
     {"username": "valid_user", "password": ["array", "for", "pw"], "name": {"fname": "John", "sname": "Smith"}},
     {"username": "valid_user", "password": "valid_Password1!", "name": {"fname": 4.5, "sname": "Smith"}},
     {"username": "valid_user", "password": "valid_Password1!", "name": {"fname": "John", "sname": True}},
-    
+
 ])
 async def test_register_incorrect_data_types(client, login_payload):
     response = await client.post(
@@ -304,7 +306,7 @@ async def test_malicious_login(client, malicious_input):
 
 @pytest.fixture()
 async def registered_user(client):
-    user_data = { 
+    user_data = {
         "username": "testuser0",
         "password": "Valid1!Password",
         "name": {
@@ -327,7 +329,7 @@ async def test_valid_token(client, registered_user):
     response = await client.get("/users/me", headers={
             "Authorization": f"Bearer {token}"
         })
-    
+
     assert response.status_code == 200
 
 async def test_expired_token(client, registered_user):
@@ -361,7 +363,7 @@ async def test_invalid_tokens(client, registered_user, bad_token, description):
         "Authorization": f"Bearer {bad_token}"
     })
     assert response.status_code == 401, description
-    
+
 # Hashing tests
 
 async def test_password_hashed_in_db(client):

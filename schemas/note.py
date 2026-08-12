@@ -1,7 +1,7 @@
-from typing import Annotated
-from pydantic import BaseModel, Field, StringConstraints
 from datetime import datetime
-from typing import Optional
+from typing import Annotated
+
+from pydantic import BaseModel, Field, StringConstraints
 
 strippedStr = Annotated[str, StringConstraints(strip_whitespace=True)]
 
@@ -10,8 +10,8 @@ class NoteCreate(BaseModel):
     content: strippedStr = Field(min_length=1, max_length=100000)
 
 class NoteUpdate(BaseModel):
-    title: Optional[strippedStr] = Field(default=None, min_length=1, max_length=200)
-    content: Optional[strippedStr] = Field(default=None, min_length=1, max_length=100000)
+    title: strippedStr | None = Field(default=None, min_length=1, max_length=200)
+    content: strippedStr | None = Field(default=None, min_length=1, max_length=100000)
 
 class NoteResponse(BaseModel):
     id: str

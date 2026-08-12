@@ -1,6 +1,7 @@
-from typing import Annotated
-from pydantic import BaseModel, Field, StringConstraints, field_validator
 import re
+from typing import Annotated
+
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 strippedStr = Annotated[str, StringConstraints(strip_whitespace=True)]
 
@@ -26,7 +27,7 @@ class UserCreate(BaseModel):
             raise ValueError("Username must be at least 3 characters long.")
         if len(value) > 32:
             raise ValueError("Username cannot be longer than 32 characters.")
-        
+
         if not re.match(r'^[a-z0-9_-]+$', value):
             raise ValueError("Username may only contain letters, numbers, hyphens and underscores.")
 
@@ -52,7 +53,7 @@ class UserCreate(BaseModel):
         if not re.search(r'[^\w\s]', value):
             raise ValueError("Password must contain at least one special character.")
 
-        
+
         return value
 
 class UserResponse(BaseModel):

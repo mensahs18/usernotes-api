@@ -1,6 +1,5 @@
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
-
 
 DB_URL = "sqlite+aiosqlite:///./notes.db"
 
@@ -11,4 +10,3 @@ LocalSession = async_sessionmaker(bind=engine)
 class Base(DeclarativeBase):
     pass
 
-    

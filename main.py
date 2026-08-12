@@ -1,8 +1,11 @@
-from fastapi import FastAPI
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from database import engine, Base
-from typing import AsyncGenerator
-from routes import user_router, note_router
+
+from fastapi import FastAPI
+
+from database import Base, engine
+from routes import note_router, user_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
