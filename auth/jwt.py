@@ -33,6 +33,6 @@ def verify_access_token(token: str) -> dict[str, Any]:
         decoded_jwt = jwt.decode(token, key=SECRET_KEY, algorithms=[ALGORITHM])
         return decoded_jwt 
     except jwt.ExpiredSignatureError:
-        raise HTTPException( 401, "Token has expired." )
+        raise HTTPException( 401, "Token has expired." ) from None
     except jwt.InvalidTokenError:
-        raise HTTPException( 401, "Token is invalid." )
+        raise HTTPException( 401, "Token is invalid." ) from None
