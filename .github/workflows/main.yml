@@ -1,28 +1,54 @@
-name: Tests
+name: CI
 on:
   push:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+
 jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      SECRET_KEY: secret-key-test
-      # This is not a real secret key: For CI testing only
+      SECRET_KEY: d58e20f5904a1b18d609e1eca6de86c8752d4c9439ebbeca025ecc9a551940d3
       ENCRYPT_KEY: 77588f4eccddd7f57f2514e64ef2873e169445adae7de09c2b872404abbbe5cb
+      # These are not real secret keys: For CI testing only
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
           
-      - name: Install required dependencies
-        run: pip install -r requirements.txt
+      - name: Install Poetry
+        run: pip install poetry
 
-      - name: Install dev dependencies
-        run: pip install -r requirements-dev.txt
+      - name: Install dependencies
+        run: poetry install
         
       - name: Run tests
-        run: python -m pytest tests/ -q
+        run: poetry run python -m pytest tests/ -q
     
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Format check
+        run: poetry run ruff format --check .
+
+      - name: Lint
+        run: poetry run ruff check .
+
+      - name: Type check
+        run: poetry run mypy .
