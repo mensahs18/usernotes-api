@@ -1,11 +1,19 @@
-from fastapi import Depends, HTTPException, APIRouter, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, asc
 from typing import Annotated
-from models import User, Note
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import asc, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from auth import decrypt, encrypt
 from dependencies import get_current_user, get_database
-from schemas import NoteUpdate, NoteCreate, NoteResponse, PaginatedNoteResponse, NotePreviewResponse
-from auth import encrypt, decrypt
+from models import Note, User
+from schemas import (
+    NoteCreate,
+    NotePreviewResponse,
+    NoteResponse,
+    NoteUpdate,
+    PaginatedNoteResponse,
+)
 
 router = APIRouter()
 
@@ -13,10 +21,10 @@ async def get_note_or_404(note_id: str, user: User, db: AsyncSession) -> Note:
 
     result = await db.execute(select(Note).where(Note.id == note_id, Note.user_id == user.id))
     existing_note = result.scalar_one_or_none()
-    
+
     if not existing_note:
         raise HTTPException(404, detail="Note not Found.")
-    
+
     return existing_note
 
 
@@ -48,7 +56,7 @@ async def create_note(note: NoteCreate, user: User = Depends(get_current_user), 
 async def read_notes(
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
-    user: User = Depends(get_current_user), 
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_database)) -> PaginatedNoteResponse:
 
     count_result = await db.execute(select(func.count()).select_from(Note).where(Note.user_id == user.id))
@@ -84,14 +92,14 @@ async def read_one_note(note_id: str, user: User = Depends(get_current_user), db
 
 @router.patch("/notes/{note_id}", response_model=NoteResponse, status_code=200)
 async def update_note(note_id: str, updated_note: NoteUpdate, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_database)) -> NoteResponse:
-    
+
     existing_note = await get_note_or_404(note_id, user, db)
 
     update_data = updated_note.model_dump(exclude_unset=True)
     # Only update what user entered
     if not update_data:
         raise HTTPException(400, detail="No fields provided to update.")
-    
+
     if "title" in update_data:
         existing_note.title = encrypt(update_data["title"])
     if "content" in update_data:
@@ -111,6 +119,6 @@ async def update_note(note_id: str, updated_note: NoteUpdate, user: User = Depen
 @router.delete("/notes/{note_id}", status_code=204)
 async def delete_note(note_id: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_database)) -> None:
     existing_note = await get_note_or_404(note_id, user, db)
-        
+
     await db.delete(existing_note)
     await db.commit()

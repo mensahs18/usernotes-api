@@ -1,6 +1,7 @@
 import pytest
 from httpx import AsyncClient
 
+
 @pytest.fixture
 async def authed_client(client):
     await create_and_login_user(client, "username0")
@@ -91,7 +92,7 @@ async def test_create_note_unauthenticated(client):
     )
 
     assert response.status_code == 401
-    
+
 
 async def test_get_individual_note(authed_client):
 
@@ -187,11 +188,11 @@ async def test_get_notes_unauthorized_user(authed_client):
     })
 
     await create_and_login_user(authed_client, "username1")
-    
+
     await authed_client.post(
-        "/notes", 
+        "/notes",
         json={
-            "title": "User1's note", 
+            "title": "User1's note",
             "content": "note1 info"
         }
     )
@@ -210,7 +211,7 @@ async def test_get_notes_are_paginated(authed_client):
 
     response = await authed_client.get("/notes?limit=2&offset=0")
     assert response.status_code == 200
-    
+
     page_1 = response.json()
     assert page_1["total"] == 3
     assert page_1["limit"] == 2
@@ -228,7 +229,7 @@ async def test_get_notes_are_paginated(authed_client):
     assert page_2["offset"] == 2
     assert len(page_2["notes"]) == 1
     assert page_2["notes"][0]["title"] == "Note C"
-    
+
 
 async def test_update_note(authed_client):
     create_response = await authed_client.post(
@@ -268,7 +269,7 @@ async def test_update_note_unauthenticated(client):
             "content": "Patched Content"
         }
     )
-    
+
     assert response.status_code == 401
 
 async def test_update_note_unauthorized_user(authed_client):
@@ -333,11 +334,11 @@ async def test_update_note_no_fields(authed_client):
                 "content": "Correct Content"
             }
         )
-    
+
     assert create_response.status_code == 201, "Failed to initialise note"
-    
+
     note_id = create_response.json()["id"]
-    
+
     response = await authed_client.patch(
         f"/notes/{note_id}",
         json={}
@@ -362,7 +363,7 @@ async def test_delete_note(authed_client):
     assert response.status_code == 204
 
 async def test_delete_note_unauthenticated(client):
-    response = await client.delete(f"/notes/019484b2-f300-7000-8000-123456789abc")
+    response = await client.delete("/notes/019484b2-f300-7000-8000-123456789abc")
 
     assert response.status_code == 401
 

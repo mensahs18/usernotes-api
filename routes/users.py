@@ -1,12 +1,12 @@
-from fastapi import Depends, HTTPException, APIRouter
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from models import User
+
+from auth import authenticate_user, create_access_token, hash_password
 from dependencies import get_current_user, get_database
-from schemas import UserCreate, UserResponse, TokenResponse, Name
-from auth import hash_password, authenticate_user, create_access_token
+from models import User
+from schemas import Name, TokenResponse, UserCreate, UserResponse
 
 router = APIRouter()
 
@@ -42,10 +42,10 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_database)) -
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_database)) -> TokenResponse:
     current_user = await authenticate_user(form_data.username, form_data.password, db)
     token = create_access_token(current_user.id)
-    
+
     return TokenResponse(
         access_token=token,
-        token_type="bearer"
+        token_type="bearer" # noqa
     )
 
 @router.get("/me", response_model=UserResponse, status_code=200)
