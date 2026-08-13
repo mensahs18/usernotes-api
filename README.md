@@ -28,6 +28,7 @@ A secure asynchronous REST API backend built with FastAPI and SQLAlchemy, implem
 - [X] Ownership validation on note routes
 - [X] JWT expiration handling
 - [ ] Token refreshing
+- [ ] JWT denylisting on logout
 - [ ] Rate limiting (Redis) against DoS
 
 ### Testing
@@ -42,7 +43,7 @@ A secure asynchronous REST API backend built with FastAPI and SQLAlchemy, implem
 
 ### Architecture & Production
 - [X] Refactor into modules
-- [ ] Project tools (i.e. poetry, ruff, black)
+- [X] Project tools (ruff, mypy, precommit)
 - [ ] Dockerfile
 - [ ] Docker Compose
 - [ ] Logging
@@ -61,23 +62,23 @@ A secure asynchronous REST API backend built with FastAPI and SQLAlchemy, implem
 
 Create a `.env` file in the root directory:
 
-```python
+```env
 # .env file
 SECRET_KEY=secret_key_here
 ENCRYPT_KEY=your_32_byte_hex_key_here
 ```
 
-- `ENCRYPT_KEY` can be generated with the following terminal command:
+- `SECRET_KEY` and `ENCRYPT_KEY` can be generated with the following terminal command:
 
-`python -c "import os; print(os.urandom(32).hex())"`
+`poetry run python -c "import os; print(os.urandom(32).hex())"`
 
 Install required dependencies:
 
-`pip install -r requirements.txt`
+`poetry install`
 
 Run server:
 
-`uvicorn main:app --reload`
+`poetry run uvicorn main:app --reload`
 
 Open browser, and enter Swagger UI at:
 
@@ -86,25 +87,29 @@ http://127.0.0.1:8000/docs
 
 ## Design Decisions & Tradeoffs
 
-- SQLite transition to PostgreSQL: PostgreSQL allows for high concurrency and horizontal scaling. SQLite is used initially due to its ease of use, easy testing and simple configuration.
-- Write Concurrency Limits: Testing in the `notes-routes` PR confirms SQLite locks under concurrent `POST` requests. By design, SQLite serialises writes while allowing parallel reads. PostgreSQL is preferred for production due to its support for concurrent writes.
-- AioSQLite vs PostgreSQL: While `aiosqlite` uses a background thread pool to enable asynchronous code, it is still bound by SQLite's write-lock limitation under heavy load. PostgreSQL supports asynchronous drivers and allows concurrent reads and writes without blocking.
+- I initially used SQLite as the database, due to its ease of use and simple configuration, while being aware of PostgreSQL as the industry standard.
 
-- Username Case-Sensitivity: Usernames were initially case-sensitive at the database level. A follow-up step i.e. lowercasing on registration and login, has been executed to prevent duplicate accounts and authentication friction between equivalent usernames such as `admin1` and `Admin1`.
+- Testing in the `notes-routes` branch (PR #2) confirms SQLite locks under concurrent `POST` requests. By design, SQLite serialises writes while allowing concurrent reads. This is fine for testing, but under load, it locks up preventing further writes. While this can be mitigated with SQLite's Write Ahead Logging (WAL) mode, which allows concurrent reads while writes occur, PostgreSQL is still preferred in production due to its native support for concurrent writes.
 
-- `AES-256-GCM` over `Fernet`: Chosen over Fernet (AES-128-CBC) for stronger key length and built-in integrity verification. GCM mode provides both confidentiality via encryption and both authenticity and integrity via authentication tag, preventing ciphertext tampering.
+- When transitioning to asynchronous execution, `aiosqlite` was used to give SQLite an asynchronous interface. While `aiosqlite` does use a background thread pool to allow asynchronous code, it is still bound by SQLite's write-lock limitation under heavy load. PostgreSQL supports asynchronous drivers and allows concurrency without blocking.
 
-- Argon2 hashing vs. `bcrypt` with `passlib`: Although initially considered, bcrypt falls short of argon2 hashing against modern GPU brute force attacks. Argon2 is the winner of the PHC and is recommended by the OWASP, due to being memory-hard.
-- Maximum Password Length vs. CPU Exhaustion (DoS): Allowing 128 characters in password introduces a potential Denial of Service (DoS) vector, as hashing large inputs with Argon2 is computationally expensive. Accepted as a trade-off to prioritise user password flexibility. In a future PR, application-level CPU exhaustion DoS attacks on authentication will be mitigated via Redis rate-limiting, over shortening user inputs. Distributed DoS (DDoS) mitigation would require infrastructure level solutions, which are outside of the scope of this project.
-- Password composition rules vs OWASP guidance: OWASP  recommends against composition rules in favour of length. Composition rules retained as a deliberate design choice for this project, with awareness of the usability tradeoff.
+- Initially, usernames were case-sensitive at the database level. I fixed this by lowercasing inputs on registration and login to prevent duplicate accounts and authentication friction between equivalent usernames such as `admin1` and `Admin1`.
+
+- I chose `AES-256-GCM` over Fernet (AES-128-CBC) due to its stronger key length and built-in integrity verification. GCM mode provides confidentiality via encryption as well as authenticity and integrity via an authentication tag, which prevents ciphertext tampering.
+
+- Although I initially intended to use `bcrypt` with `passlib` for password hashing, bcrypt has been proven to be less effective than Argon2 hashing against modern GPU brute force attacks. Argon2 is the industry standard and is recommended by OWASP, due to being memory-hard, which means it requires a significant amount of memory to process each hash.
+
+- When adding password length constraints, I allowed 128 characters. This introduces a potential Denial of Service (DoS) vector, as hashing large inputs with Argon2 is computationally expensive. I accepted it as a trade-off to give users more flexibility with their password lengths and allow 128-character string password managers. In a future PR, application-level CPU exhaustion DoS attacks on authentication will be mitigated via Redis rate-limiting, rather than shortening user inputs. Distributed DoS (DDoS) mitigation would require infrastructure level solutions, which are outside of the scope of this project.
+
+- Regarding password composition rules, OWASP actually recommends against composition rules in favour of length, as users tend to make predictable substitutions e.g. swapping an 'a' for '@'. In this case, composition rules have been used as a deliberate design choice for this project, with awareness of the usability tradeoff.
 
 ### Load Testing & Performance
 
 #### Synchronous SQLite
 
-- Concurrency Load Testing: Simulated concurrent traffic, via Locust, indicated two distinct bottlenecks. Initially tested under a load of around 200 concurrent users. After reducing the load, the constraint shifted from the storage layer to application resource limits, resulting in SQLAlchemy `TimeoutError` exceptions, after a brief period.
+- I ran some concurrent traffic simulations using Locust, exposing two distinct bottlenecks. I started testing under a load of around 200 concurrent users. After reducing the load, the constraint shifted from the storage layer to application resource limits, resulting in SQLAlchemy `TimeoutError` exceptions, after a brief period. This is because the application held onto connections too long, which exhausted the connection pool, throwing such exception after a brief period.
 
-- Connection Pool Exhaustion: The metrics reflected this resource starvation. While read operations remained stable, `POST /notes` latencies spiked to a 2000ms 99th percentile. Likely a result of connection starvation, migrating to PostgreSQL and use of an async driver should allow concurrent writes without these bottlenecks.
+- The metrics also reflected this. While read operations remained stable, `POST /notes` latencies spiked to a 2000ms 99th percentile because requests waited for available database slots. Migrating to PostgreSQL and switching to an async driver will resolve this by allowing non-blocking, concurrent writes.
 
 #### Encryption and threadpools
 
@@ -113,4 +118,4 @@ http://127.0.0.1:8000/docs
   - Synchronous AES‑256‑GCM: 39.9 ms median
   - Threadpool AES‑256‑GCM: 45.0 ms median
 
-- At this scale, AES-256-GCM encryption introduces minimal overhead, whereas offloading it to a threadpool introduced ~5 ms median overhead (and a worse p95 latency), showing the context-switching when running it in a threadpool exceeded the actual encryption process. While both AES-256-GCM and Argon2 are implemented in C, AES encryption is hardware accelerated, whereas Argon2 hashing is deliberately slow. Following this, `run_in_threadpool` stripped from all encrypt/decrypt function calls.
+- At this scale, AES-256-GCM encryption introduces minimal overhead, whereas offloading it to a threadpool introduced ~5 ms median overhead (and a worse p95 latency), showing the context-switching when running it in a threadpool exceeded the actual encryption process. While both AES-256-GCM and Argon2 are implemented in C, AES encryption is hardware accelerated, whereas Argon2 hashing is deliberately slow. Following this, I stripped `run_in_threadpool` from all encrypt/decrypt function calls.

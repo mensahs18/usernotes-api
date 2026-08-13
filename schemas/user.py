@@ -1,14 +1,17 @@
-from typing import Annotated
-from pydantic import BaseModel, Field, StringConstraints, field_validator
 import re
+from typing import Annotated
+
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 strippedStr = Annotated[str, StringConstraints(strip_whitespace=True)]
 
 usernameStr = Annotated[str, StringConstraints(strip_whitespace=True, to_lower=True)]
 
+
 class Name(BaseModel):
     fname: strippedStr
     sname: strippedStr
+
 
 class UserCreate(BaseModel):
     username: usernameStr = Field(
@@ -19,22 +22,24 @@ class UserCreate(BaseModel):
     )
     name: Name
 
-    @field_validator('username')
+    @field_validator("username")
     @classmethod
-    def validate_username(cls, value):
+    def validate_username(cls, value: str) -> str:
         if len(value) < 3:
             raise ValueError("Username must be at least 3 characters long.")
         if len(value) > 32:
             raise ValueError("Username cannot be longer than 32 characters.")
-        
-        if not re.match(r'^[a-z0-9_-]+$', value):
-            raise ValueError("Username may only contain letters, numbers, hyphens and underscores.")
+
+        if not re.match(r"^[a-z0-9_-]+$", value):
+            raise ValueError(
+                "Username may only contain letters, numbers, hyphens and underscores."
+            )
 
         return value
 
-    @field_validator('password')
+    @field_validator("password")
     @classmethod
-    def validate_password(cls, value):
+    def validate_password(cls, value: str) -> str:
         if len(value) < 8:
             raise ValueError("Password must be at least 8 characters long.")
         if len(value) > 128:
@@ -42,18 +47,18 @@ class UserCreate(BaseModel):
         if re.search(" ", value):
             raise ValueError("Password must not contain spaces.")
 
-        #Composition rules over length, design choice
-        if not re.search(r'[0-9]', value):
+        # Composition rules over length, design choice
+        if not re.search(r"[0-9]", value):
             raise ValueError("Password must contain at least 1 number.")
-        if not re.search(r'[A-Z]', value):
+        if not re.search(r"[A-Z]", value):
             raise ValueError("Password must contain at least one uppercase letter.")
-        if not re.search(r'[a-z]', value):
+        if not re.search(r"[a-z]", value):
             raise ValueError("Password must contain at least one lowercase letter.")
-        if not re.search(r'[^\w\s]', value):
+        if not re.search(r"[^\w\s]", value):
             raise ValueError("Password must contain at least one special character.")
 
-        
         return value
+
 
 class UserResponse(BaseModel):
     id: str = Field()

@@ -1,0 +1,102 @@
+[project]
+name = "usernotes-api"
+version = "1.0.0"
+description = "A secure, asynchronous REST API backend built with FastAPI and SQLAlchemy, featuring JWT authentication and Argon2 password hashing."
+authors = [
+    {name = "smensa",email = "mensahl18@outlook.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi (>=0.141.1,<0.142.0)",
+    "uvicorn (>=0.52.1,<0.53.0)",
+    "sqlalchemy (>=2.0.51,<3.0.0)",
+    "aiosqlite (>=0.22.1,<0.23.0)",
+    "argon2-cffi (>=25.1.0,<26.0.0)",
+    "pyjwt (>=2.13.0,<3.0.0)",
+    "cryptography (>=50.0.0,<51.0.0)",
+    "pydantic (>=2.13.4,<3.0.0)",
+    "python-dotenv (>=1.2.2,<2.0.0)",
+    "python-multipart (>=0.0.32,<0.0.33)",
+    "uuid6 (>=2025.0.1,<2026.0.0)",
+    "typing-extensions (>=4.16.0,<5.0.0)"
+]
+
+[tool.poetry]
+package-mode = false
+
+[tool.ruff]
+target-version = "py313" 
+line-length = 88         
+
+[tool.ruff.lint]
+select = [
+    "E", "W",
+    "F",
+    "B",
+    "S",        
+    "I",
+    "UP",  
+]
+
+ignore = [
+    "E501", 
+    "B008"
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = [
+    "S101",
+    "S105",
+    "S106",
+    "S107"
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+
+[tool.mypy]
+explicit_package_bases = true
+check_untyped_defs = true
+local_partial_types = true
+strict_optional = true
+ignore_missing_imports = true 
+warn_redundant_casts = true
+warn_unused_ignores = true
+extra_checks = true
+disallow_untyped_defs = true
+disallow_untyped_calls = true
+disallow_incomplete_defs = true
+implicit_reexport = true
+warn_return_any = true
+disallow_subclassing_any = true
+disallow_untyped_decorators = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+[tool.coverage.run]
+omit = ["tests/*"]
+concurrency = ["greenlet"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.1.1,<10.0.0)",
+    "pytest-asyncio (>=1.4.0,<2.0.0)",
+    "pytest-cov (>=7.1.0,<8.0.0)",
+    "freezegun (>=1.5.5,<2.0.0)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "ruff (>=0.16.2,<0.17.0)",
+    "mypy (>=2.3.0,<3.0.0)",
+    "pre-commit (>=4.6.2,<5.0.0)"
+]
