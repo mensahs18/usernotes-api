@@ -6,7 +6,8 @@ from database import Base
 from dependencies import get_database
 from main import app
 
-TEST_DB_URL = "sqlite+aiosqlite:///./test.db"
+# TEST_DB_URL = "sqlite+aiosqlite:///./test.db" old db
+TEST_DB_URL = "postgresql+asyncpg://postgres:password@localhost:5433/testdb"
 
 test_engine = create_async_engine(TEST_DB_URL)
 TestSession = async_sessionmaker(bind=test_engine)
