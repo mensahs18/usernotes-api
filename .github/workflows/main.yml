@@ -12,6 +12,21 @@ jobs:
       SECRET_KEY: d58e20f5904a1b18d609e1eca6de86c8752d4c9439ebbeca025ecc9a551940d3
       ENCRYPT_KEY: 77588f4eccddd7f57f2514e64ef2873e169445adae7de09c2b872404abbbe5cb
       # These are not real secret keys: For CI testing only
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: testdb
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
