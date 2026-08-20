@@ -1,3 +1,4 @@
+import gc
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -8,6 +9,9 @@ from routes import note_router, user_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+    gc.set_threshold(10000, 10, 10)
+    gc.freeze()
+
     yield
 
 

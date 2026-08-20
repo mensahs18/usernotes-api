@@ -12,7 +12,14 @@ if not DATABASE_URL:
 
 DB_URL: str = DATABASE_URL
 
-engine = create_async_engine(DB_URL)
+engine = create_async_engine(
+    DB_URL,
+    pool_size=15,
+    max_overflow=5,
+    pool_timeout=30,
+    pool_recycle=1800,
+    pool_pre_ping=True,
+)
 
 LocalSession = async_sessionmaker(bind=engine)
 
