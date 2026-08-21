@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Annotated
+from uuid import UUID
 
 from pydantic import BaseModel, Field, StringConstraints
 
@@ -17,7 +18,7 @@ class NoteUpdate(BaseModel):
 
 
 class NoteResponse(BaseModel):
-    id: str
+    id: UUID
     title: str
     content: str
     created_at: datetime
@@ -25,7 +26,7 @@ class NoteResponse(BaseModel):
 
 
 class NotePreviewResponse(BaseModel):
-    id: str
+    id: UUID
     title: str
     created_at: datetime
     updated_at: datetime

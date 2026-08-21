@@ -23,7 +23,7 @@ async def get_current_user(
 
     decoded_data = verify_access_token(token)
 
-    result = await db.execute(select(User).where(User.id == decoded_data["sub"]))
+    result = await db.execute(select(User).where(User.id == decoded_data.sub))
     current_user = result.scalar_one_or_none()
 
     if current_user is None:

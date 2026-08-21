@@ -1,6 +1,7 @@
 from datetime import datetime
+from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy import DateTime, ForeignKey, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 from uuid6 import uuid7
 
@@ -10,10 +11,8 @@ from database import Base
 class Note(Base):
     __tablename__ = "notes"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid7())
-    )
-    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=lambda: uuid7())
+    user_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("users.id"))
     title: Mapped[str] = mapped_column()
     content: Mapped[str] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
