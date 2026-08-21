@@ -1,5 +1,6 @@
 import re
 from typing import Annotated
+from uuid import UUID
 
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 
@@ -61,6 +62,6 @@ class UserCreate(BaseModel):
 
 
 class UserResponse(BaseModel):
-    id: str = Field()
+    id: UUID = Field()
     username: str = Field()
     name: Name

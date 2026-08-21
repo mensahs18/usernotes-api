@@ -1,6 +1,6 @@
 import os
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from uuid import UUID
 
 import jwt
 from dotenv import load_dotenv
@@ -17,7 +17,7 @@ SECRET_KEY: str = JWT_KEY
 ALGORITHM = "HS256"
 
 
-def create_access_token(user_id: str) -> str:
+def create_access_token(user_id: UUID) -> str:
     now = datetime.now(UTC)
     expiry_time = now + timedelta(minutes=15)
 
@@ -26,16 +26,20 @@ def create_access_token(user_id: str) -> str:
     )
 
     encoded_jwt = jwt.encode(
-        payload=token_payload.model_dump(), key=SECRET_KEY, algorithm=ALGORITHM
+        payload=token_payload.model_dump(mode="json"),
+        key=SECRET_KEY,
+        algorithm=ALGORITHM,
     )
 
     return encoded_jwt
 
 
-def verify_access_token(token: str) -> dict[str, Any]:
+def verify_access_token(token: str) -> TokenPayload:
     try:
         decoded_jwt = jwt.decode(token, key=SECRET_KEY, algorithms=[ALGORITHM])
-        return decoded_jwt
+        return TokenPayload(
+            sub=UUID(decoded_jwt["sub"]), exp=decoded_jwt["exp"], iat=decoded_jwt["iat"]
+        )
     except jwt.ExpiredSignatureError:
         raise HTTPException(401, "Token has expired.") from None
     except jwt.InvalidTokenError:
