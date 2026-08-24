@@ -62,7 +62,7 @@ A secure asynchronous REST API backend built with FastAPI and SQLAlchemy, implem
 
 ### Prerequisites
 - PostgreSQL running and accessible (via Docker)
-- Poetry
+- Poetry installed
 
 - A Postgres container can be run in Docker by the following command:
 
@@ -74,12 +74,13 @@ docker run --name notes-postgres \
   -d postgres:16
 ```
 
-Create a `.env` file in the root directory:
+Create a `.env` file in the project root:
 
 ```env
 SECRET_KEY=secret_key_here
 ENCRYPT_KEY=your_32_byte_hex_key_here
 DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/notesdb
+TEST_DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5433/testdb
 ```
 
 - `SECRET_KEY` and `ENCRYPT_KEY` can be generated with:
@@ -103,6 +104,23 @@ Run server:
 While the server is running, open the browser, and enter Swagger UI at:
 
 http://127.0.0.1:8000/docs
+
+
+### Testing
+
+To run tests, you must create a separate test database. This can be done in a docker container with the following command:
+
+```bash
+docker run --name test-postgres \
+  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_DB=testdb \
+  -p 5433:5432 \
+  -d postgres:16
+```
+
+Once the container is running, the following command can be used to run tests: 
+
+`poetry run pytest tests/`
 
 
 ## Design Decisions & Tradeoffs
