@@ -1,4 +1,7 @@
+import os
+
 import pytest
+from dotenv import load_dotenv
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -6,8 +9,13 @@ from database import Base
 from dependencies import get_database
 from main import app
 
-# TEST_DB_URL = "sqlite+aiosqlite:///./test.db" old db
-TEST_DB_URL = "postgresql+asyncpg://postgres:password@localhost:5433/testdb"
+load_dotenv()
+TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
+
+if not TEST_DATABASE_URL:
+    raise ValueError("'TEST_DATABASE_URL' environment variable is not set.")
+
+TEST_DB_URL: str = TEST_DATABASE_URL
 
 test_engine = create_async_engine(TEST_DB_URL)
 TestSession = async_sessionmaker(bind=test_engine)

@@ -11,6 +11,8 @@ jobs:
     env:
       SECRET_KEY: d58e20f5904a1b18d609e1eca6de86c8752d4c9439ebbeca025ecc9a551940d3
       ENCRYPT_KEY: 77588f4eccddd7f57f2514e64ef2873e169445adae7de09c2b872404abbbe5cb
+      TEST_DATABASE_URL: postgresql+asyncpg://postgres:password@localhost:5433/testdb
+      DATABASE_URL: postgresql+asyncpg://postgres:password@localhost:5433/testdb # Same url, gets overriden in tests
       # These are not real secret keys: For CI testing only
 
     services:
@@ -40,7 +42,7 @@ jobs:
         run: poetry install
         
       - name: Run tests
-        run: poetry run python -m pytest tests/ -q
+        run: poetry run pytest tests/ -q
     
   lint:
     runs-on: ubuntu-latest
