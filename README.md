@@ -135,15 +135,15 @@ Once the container is running, the following command can be used to run tests:
 
 - I chose `AES-256-GCM` over Fernet (AES-128-CBC) due to its stronger key length and built-in integrity verification. GCM mode provides confidentiality via encryption as well as authenticity and integrity via an authentication tag, which prevents ciphertext tampering.
 
-- Although I initially intended to use `bcrypt` with `passlib` for password hashing, bcrypt has been proven to be less effective than Argon2 hashing against modern GPU brute force attacks. Argon2 is the industry standard and is recommended by OWASP, due to being memory-hard, which means it requires a significant amount of memory to process each hash.
+- Although I initially intended to use `bcrypt` with `passlib` for password hashing, bcrypt has been proven to be less effective than Argon2 hashing against modern GPU brute force attacks. Argon2id is the industry standard and is recommended by OWASP, due to being memory-hard, which means it requires a significant amount of memory to process each hash.
 
-- When adding password length constraints, I allowed 128 characters. This introduces a potential Denial of Service (DoS) vector, as hashing large inputs with Argon2 is computationally expensive. I accepted it as a trade-off to give users more flexibility with their password lengths and allow 128-character string password managers. In a future PR, application-level CPU exhaustion DoS attacks on authentication will be mitigated via Redis rate-limiting, rather than shortening user inputs. Distributed DoS (DDoS) mitigation would require infrastructure level solutions, which are outside of the scope of this project.
+- When adding password length constraints, I allowed up to 128 characters to give users flexibility and accommodate password managers. While Argon2's hashing cost scales with its configured time and memory parameters rather than input length, it is an expensive operation by design. Running these intensive operations on a bounded thread pool introduces a potential application-level CPU exhaustion Denial of Service (DoS) vector if multiple authentication requests are sent in quick succession. In a future PR, this threat will be mitigated via Redis rate-limiting to prevent thread pool saturation. Distributed DoS (DDoS) mitigation would require infrastructure-level solutions, which are outside the scope of this project.
 
 - Regarding password composition rules, OWASP actually recommends against composition rules in favour of length, as users tend to make predictable substitutions e.g. swapping an 'a' for '@'. In this case, composition rules have been used as a deliberate design choice for this project, with awareness of the usability tradeoff.
 
 ## Load Testing & Performance
 
-**TL;DR:** While synchronous local SQLite matches asynchronous PostgreSQL at low concurrency (100 users, WAL mode, 4 workers), its strict write-locking architecture triggers database locks and `TimeoutError` pool exhaustion at higher loads. Migrating to PostgreSQL with `asyncpg` removed the write-lock bottleneck. Additionally, CPU-bound AES-256-GCM encryption introduces <1ms of native overhead; offloading it to an async threadpool introduced a counterproductive ~5ms latency increase due to context-switching overhead.
+**TL;DR:** Synchronous local SQLite can match asynchronous PostgreSQL at low concurrency when WAL mode and multiple workers are used, but its fundamental write‑locking design still caps scalability. As concurrency rises, serialized writes trigger lock contention, stalled connections, and eventual TimeoutError pool exhaustion. Migrating to PostgreSQL with asyncpg removes this bottleneck entirely through MVCC, enabling true concurrent reads and writes. Additionally, AES‑256‑GCM encryption is so fast natively (<1ms) that offloading it to an async threadpool only adds unnecessary context‑switching overhead, increasing latency by ~5ms instead of reducing it.
 
 <details>
 <summary>View Load Testing & Performance Tests</summary>
@@ -159,45 +159,12 @@ Once the container is running, the following command can be used to run tests:
 
 ### Synchronous SQLite vs Asynchronous PostgreSQL
 
+- This project originally used SQLite, but was migrated to PostgreSQL. Before doing this, I performed relative tests to see exactly SQLite fell short of PostgreSQL under high concurrencies. Test conditions were kept constant, relative to one another, but did not match a production system's. A full breakdown of the methodology, configurations, and results can be found in [benchmarks/README.md](./benchmarks/README.md). 
 
-#### SQLite ( no WAL )
+To summarise:
+- SQLite performs well at low concurrency but cannot scale well due to serialized writes and file‑locking. With proper configuration and WAL mode, it is suitable for lightweight or read-heavy applications.
+- PostgreSQL’s MVCC enables true concurrent reads/writes and scales linearly under load, making it ideal for applications that are expected to handle high write concurrency.
 
-- I ran some concurrent traffic simulations using Locust, exposing distinct performance bottlenecks. I started testing under a load of 200 concurrent users, but this caused database locking, an inherent limitation of SQLite: only one writer can operate at a time. Furthermore, when a write lock is held, standard SQLite prevents concurrent reads. This resulted in connections holding for longer, eventually exhausting the connection pool and raising SQLAlchemy `TimeoutError` exceptions. 
-
-- After reducing the load to 100 users (4 added per second), the apparent bottleneck shifted from the storage layer to application resource limits. Standard SQLite's write-locking behaviour, without additional configuration, resulted in a significant amount of pool contention. The metrics also reflected this. While read operations were less severely impacted than writes, both degraded under sustained load as read requests queued behind held write locks. `POST /notes` latencies spiked to a 2000ms 99th percentile because requests waited for available connections, which could remain occupied while other operations waited on the write lock.
-
-#### SQLite ( WAL mode / 1 worker )
-
-- **1 worker**: Enabling Write-Ahead Logging (WAL) with a single worker showed significantly improved read performance by allowing concurrent reads during writes. However, under sustained load at 100 concurrent users, `POST` p99 reached 2800ms and the server eventually threw `TimeoutError` exceptions, indicating connection pool exhaustion. WAL allows concurrent reads while writing, but the write lock still serialises all writes regardless of WAL mode.
-
-#### SQLite ( WAL mode / 4 workers)
-
-- **4 workers**: Using 4 workers `uvicorn main:app --workers 4` with WAL produced the best SQLite metrics, a POST p50 of 13ms and GET p50 of 12ms, rivalling PostgreSQL at low concurrency (100 users). However, under sustained load, p99.9 latency still reached ~900ms under sustained load, exposing the write lock's persistence even after configuration adjustments. Multiple workers may attempt to `POST` simultaneously to the same database, and in the unfortunate case they push simultaneously, SQLite's write lock exposes itself once again.
-
-#### Asynchronous PostgreSQL
-
-Finally, migrating to PostgreSQL with `asyncpg` eliminated SQLite's write-lock by using **Multi-Versioning Concurrency Control** (MVCC). MVCC allows true concurrent reads and writes regardless of the user count. The following metrics were captured at 100 concurrent users (4 per second) to provide a controlled comparison against the SQLite baseline. However, it's important to note that due to its architecture, PostgreSQL can scale to handle much higher levels of concurrency.
-
-**1 worker, pool_size=60:**
-
-| Endpoint | p50 | p95 | p99 |
-|---|---|---|---|
-| GET /notes | 15ms | 32ms | 44ms |
-| POST /notes | 20ms | 41ms | 60ms |
-
-**4 workers, pool_size=15 per worker**
-
-| Endpoint | p50 | p95 | p99 |
-|---|---|---|---|
-| GET /notes | 13ms | 25ms | 35ms |
-| POST /notes | 18ms | 33ms | 50ms |
-
-At only 100 concurrent users, the difference between 1 and 4 workers is small, sitting at around 1-2ms. A single async event loop handles 100 concurrent users efficiently. The benefit of multiple workers becomes more apparent at higher concurrency scales. For instance, at 500 concurrent users, the API was able to efficiently handle requests at around 225 requests per second, and suffered <1 ms of latency degradation. Both tests recorded no failures. 
-
-- When configuring pooling, I kept the connection count across pools under PostgreSQL's `max_connections=100`, leaving room for other potential services. For 1 worker, I allowed an overflow of 20, whereas with 4, I allowed 5. This consistently used 80% of the maximum connections across both tests.
-
-#### Key Takeaways
-
-While the difference in operation between SQLite and PostgreSQL appears negligible at low concurrency, there is a confounding factor to note. PostgreSQL runs in a Docker container, introducing the overhead of network virtualisation between the database and the API. This is ~2-5ms per query that SQLite's direct, local file access avoids. In production, both would involve network latency: PostgreSQL to a managed database service, SQLite would need to remain local to the application. The comparison would likely favour PostgreSQL more significantly in a remote deployment scenario.
+All detailed metrics, p50/p95/p99 latencies, and concurrency scaling tests (200–800 users) are documented in the dedicated load‑testing report.
 
 </details>
