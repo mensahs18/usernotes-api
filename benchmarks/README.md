@@ -35,10 +35,11 @@ While the hardware and test configurations were kept identical between tests, it
 ```python
 engine = create_engine(
     DB_URL,
-    pool_size=..., # Value modified
-    max_overflow=..., # Value modified
+    pool_size=...,  # Value modified
+    max_overflow=...,  # Value modified
     pool_timeout=30,
 )
+
 
 # sqlite, no wal
 @event.listens_for(engine, "connect")
@@ -50,6 +51,7 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
     cursor.execute("PRAGMA synchronous=NORMAL;")
     cursor.execute("PRAGMA busy_timeout=5000;")
     cursor.close()
+
 
 @event.listens_for(engine, "begin")
 def do_begin_immediate(conn):
@@ -105,8 +107,8 @@ cursor.execute("PRAGMA journal_mode=WAL;")
 ```python
 engine = create_async_engine(
     POSTGRES_DB_URL,
-    pool_size=..., # Value modified
-    max_overflow=..., # Value modified
+    pool_size=...,  # Value modified
+    max_overflow=...,  # Value modified
     pool_timeout=30,
     pool_recycle=1800,
     pool_pre_ping=True,

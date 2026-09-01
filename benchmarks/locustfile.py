@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class NotesAPIUser(HttpUser):
     wait_time = between(1.9, 2.1)
 
-    def on_start(self):
+    def on_start(self) -> None:
         payload = {
             "username": "MyUsername",  # credentials used for logging in.
             "password": "MYP@ssw0rd!",  # consistent with the present note
@@ -31,13 +31,13 @@ class NotesAPIUser(HttpUser):
             self.client.headers.update({"Authorization": f"Bearer {token}"})
 
     @task(7)
-    def get_note(self):
+    def get_note(self) -> None:
         self.client.get(
             "/notes/01a05ceb-af1a-7fff-baaa-aaaaaaaaaaaa"
         )  # GET a note ID that is already present in BD
 
     @task(3)
-    def create_note(self):
+    def create_note(self) -> None:
         self.client.post(
             "/notes",
             json={
