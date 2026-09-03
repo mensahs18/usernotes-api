@@ -11,8 +11,6 @@ Aggregated p99 = (GET_p99 * 0.7) + (POST_p99 * 0.3)
 - For all tests, including PostgreSQL's, I kept a consistent rampup of 4 users per second.
 - All tests below were run for **15 minutes**, and the data was reset 5 minutes in, with the exception of the WAL test at 400 users (see caveats below).
 
-- Results can be found in the [reports](./reports/) folder. Note that for any HTML files, GitHub may show only the source code, so you may need to download them to view them.
-
 ### Hardware Specs
 
 **Model:** MSI Modern 15 H
