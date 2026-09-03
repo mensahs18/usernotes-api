@@ -44,8 +44,8 @@ A secure asynchronous REST API backend built with FastAPI and SQLAlchemy, implem
 ### Architecture & Production
 - [X] Refactor into modules
 - [X] Project tools (ruff, mypy, precommit)
-- [ ] Dockerfile
-- [ ] Docker Compose
+- [X] Dockerfile
+- [X] Docker Compose
 - [ ] Logging
 
 
@@ -61,29 +61,54 @@ A secure asynchronous REST API backend built with FastAPI and SQLAlchemy, implem
 ## How to run
 
 ### Prerequisites
-- PostgreSQL running and accessible (via Docker)
 - Poetry installed
+- Docker Desktop running
 
-- A Postgres container can be run in Docker by the following command:
-
-```bash
-docker run --name notes-postgres \
-  -e POSTGRES_PASSWORD=password \
-  -e POSTGRES_DB=notesdb \
-  -p 5432:5432 \
-  -d postgres:16
-```
+### Docker Compose
 
 Create a `.env` file in the project root:
 
 ```env
+POSTGRES_PASSWORD=local_dev_password
 SECRET_KEY=secret_key_here
 ENCRYPT_KEY=your_32_byte_hex_key_here
-DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/notesdb
-TEST_DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5433/testdb
+DATABASE_URL=postgresql+asyncpg://postgres:local_dev_password@db:5432/notesdb
+TEST_DATABASE_URL=postgresql+asyncpg://postgres:local_dev_password@localhost:5433/testdb
 ```
 
 - `SECRET_KEY` and `ENCRYPT_KEY` can be generated with:
+
+```bash
+python -c "import os; print(os.urandom(32).hex())"
+```
+
+Start the application and database:
+
+```bash
+docker compose up --build
+```
+
+The app runs migrations automatically before starting on:
+
+http://127.0.0.1:8000/docs
+
+To stop the services:
+
+```bash
+docker compose down
+```
+
+The Postgres data volume is retained between restarts. Add `-v` to `docker compose down` when you intentionally want to remove it.
+
+### Local Poetry setup
+
+For running the application outside Docker, use a database URL with `localhost` instead of the Compose service name:
+
+```env
+DATABASE_URL=postgresql+asyncpg://postgres:local_dev_password@localhost:5432/notesdb
+```
+
+- As above, `SECRET_KEY` and `ENCRYPT_KEY` can be generated with:
 
 ```bash
 poetry run python -c "import os; print(os.urandom(32).hex())"
@@ -93,7 +118,7 @@ Install dependencies:
 
 `poetry install`
 
-Run database migrations:
+On Poetry, you must run database migrations on Alembic manually:
 
 `poetry run alembic upgrade head`
 
@@ -101,10 +126,7 @@ Run server:
 
 `poetry run uvicorn main:app --workers 4`
 
-While the server is running, open the browser, and enter Swagger UI at:
-
-http://127.0.0.1:8000/docs
-
+The app runs at: http://127.0.0.1:8000/docs
 
 ### Testing
 
@@ -112,13 +134,14 @@ To run tests, you must create a separate test database. This can be done in a do
 
 ```bash
 docker run --name test-postgres \
-  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_PASSWORD=local_dev_password \
   -e POSTGRES_DB=testdb \
   -p 5433:5432 \
   -d postgres:16
 ```
+- The test database listens on port 5433 to avoid conflicting with the main database, in the event both containers are runnning simultaneously.
 
-Once the container is running, the following command can be used to run tests: 
+Once the container is running, the following command can be used to run tests:
 
 `poetry run pytest tests/`
 
