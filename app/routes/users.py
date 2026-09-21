@@ -3,10 +3,10 @@ from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth import authenticate_user, create_access_token, hash_password
-from dependencies import get_current_user, get_database
-from models import User
-from schemas import Name, TokenResponse, UserCreate, UserResponse
+from app.auth import authenticate_user, create_access_token, hash_password
+from app.dependencies import get_current_user, get_database
+from app.models import User
+from app.schemas import Name, TokenResponse, UserCreate, UserResponse
 
 router = APIRouter()
 

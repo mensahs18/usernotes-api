@@ -4,7 +4,7 @@ from sqlalchemy import Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 from uuid6 import uuid7
 
-from database import Base
+from app.database import Base
 
 
 class User(Base):

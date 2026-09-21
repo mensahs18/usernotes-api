@@ -6,7 +6,7 @@ import jwt
 from dotenv import load_dotenv
 from fastapi import HTTPException
 
-from schemas import TokenPayload
+from app.schemas import TokenPayload
 
 load_dotenv()
 JWT_KEY = os.getenv("SECRET_KEY")
