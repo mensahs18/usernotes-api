@@ -2,6 +2,8 @@
 
 [![Tests](https://github.com/mensahs18/usernotes-api/actions/workflows/main.yml/badge.svg)](https://github.com/mensahs18/usernotes-api/actions/workflows/main.yml)
 
+[![Coverage](https://img.shields.io/codecov/c/github/mensahs18/usernotes-api)](https://codecov.io/gh/mensahs18/usernotes-api)
+
 A secure asynchronous REST API backend built with FastAPI and SQLAlchemy, implementing JWT authentication, Argon2 password hashing, and AES-256-GCM note encryption.
 
 ## Features
@@ -72,7 +74,7 @@ Create a `.env` file in the project root:
 POSTGRES_PASSWORD=local_dev_password
 SECRET_KEY=secret_key_here
 ENCRYPT_KEY=your_32_byte_hex_key_here
-DATABASE_URL=postgresql+asyncpg://postgres:local_dev_password@db:5432/notesdb
+DATABASE_URL=postgresql+asyncpg://postgres:local_dev_password@localhost:5432/notesdb
 TEST_DATABASE_URL=postgresql+asyncpg://postgres:local_dev_password@localhost:5433/testdb
 ```
 
@@ -163,6 +165,8 @@ Once the container is running, the following command can be used to run tests:
 - When adding password length constraints, I allowed up to 128 characters to give users flexibility and accommodate password managers. While Argon2's hashing cost scales with its configured time and memory parameters rather than input length, it is an expensive operation by design. Running these intensive operations on a bounded thread pool introduces a potential application-level CPU exhaustion Denial of Service (DoS) vector if multiple authentication requests are sent in quick succession. In a future PR, this threat will be mitigated via Redis rate-limiting to prevent thread pool saturation. Distributed DoS (DDoS) mitigation would require infrastructure-level solutions, which are outside the scope of this project.
 
 - Regarding password composition rules, OWASP actually recommends against composition rules in favour of length, as users tend to make predictable substitutions e.g. swapping an 'a' for '@'. In this case, composition rules have been used as a deliberate design choice for this project, with awareness of the usability tradeoff.
+
+- I configured `user_id` in the `notes` table with `ondelete="CASCADE"` and a database index (`index=True`) as the foreign key. While I discovered that PostgreSQL's Cost-Based Optimizer (CBO) may not use indexes on smaller test datasets and use faster sequential scans, indexing foreign keys is a deliberate design choice for production scalability. It ensures that actions that need to query specific rows remain highly performant as the dataset grows.
 
 ## Load Testing & Performance
 

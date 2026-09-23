@@ -4,10 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import asc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth import decrypt, encrypt
-from dependencies import get_current_user, get_database
-from models import Note, User
-from schemas import (
+from app.auth import decrypt, encrypt
+from app.dependencies import get_current_user, get_database
+from app.models import Note, User
+from app.schemas import (
     NoteCreate,
     NotePreviewResponse,
     NoteResponse,

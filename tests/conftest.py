@@ -5,9 +5,9 @@ from dotenv import load_dotenv
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from database import Base
-from dependencies import get_database
-from main import app
+from app.database import Base
+from app.dependencies import get_database
+from app.main import app
 
 load_dotenv()
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
