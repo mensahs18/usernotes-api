@@ -2,6 +2,8 @@
 
 [![Tests](https://github.com/mensahs18/usernotes-api/actions/workflows/main.yml/badge.svg)](https://github.com/mensahs18/usernotes-api/actions/workflows/main.yml)
 
+[![Coverage](https://img.shields.io/codecov/c/github/mensahs18/usernotes-api)](https://codecov.io/gh/mensahs18/usernotes-api)
+
 A secure asynchronous REST API backend built with FastAPI and SQLAlchemy, implementing JWT authentication, Argon2 password hashing, and AES-256-GCM note encryption.
 
 ## Features
